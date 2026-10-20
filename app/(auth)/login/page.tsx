@@ -1,11 +1,5 @@
-import { Button } from "@/components/ui/button"
+import { LoginForm } from "@/components/login-form";
 
 export default function Page() {
-  return (
-    <div className="flex min-h-svh p-6">
-      <div>
-        Lorem ipsum, dolor sit amet consectetur adipisicing elit. Laboriosam ipsa nam necessitatibus, quibusdam corrupti est ullam, et voluptatibus cumque similique at distinctio blanditiis quidem commodi soluta ea, explicabo quaerat consequatur!
-      </div>
-    </div>
-  )
+  return <LoginForm className="mx-auto w-full max-w-md" />
 }
