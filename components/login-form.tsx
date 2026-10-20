@@ -1,8 +1,10 @@
 "use client"
 
-import { useState, type FormEvent } from "react"
+import { useState } from "react"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { cn } from "cn"
 import Link from "next/link"
+import { useForm } from "react-hook-form"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -15,19 +17,27 @@ import {
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { loginSchema, type LoginFormValues } from "@/lib/validation/auth"
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const [feedback, setFeedback] = useState<string | null>(null)
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+  })
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  function onSubmit() {
     setFeedback("Sign-in is not configured yet. Your details were not sent.")
   }
 
@@ -41,7 +51,11 @@ export function LoginForm({
           </CardDescription>
         </CardHeader>
         <CardContent className="px-6 pb-8 sm:px-8">
-          <form onSubmit={handleSubmit} onChange={() => setFeedback(null)}>
+          <form
+            noValidate
+            onSubmit={handleSubmit(onSubmit)}
+            onChange={() => setFeedback(null)}
+          >
             <FieldGroup className="gap-5">
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
@@ -51,9 +65,10 @@ export function LoginForm({
                   placeholder="m@example.com"
                   className="h-10"
                   autoComplete="email"
-                  name="email"
-                  required
+                  aria-invalid={!!errors.email}
+                  {...register("email")}
                 />
+                <FieldError>{errors.email?.message}</FieldError>
               </Field>
               <Field>
                 <div className="flex items-center">
@@ -70,9 +85,10 @@ export function LoginForm({
                   type="password"
                   className="h-10"
                   autoComplete="current-password"
-                  name="password"
-                  required
+                  aria-invalid={!!errors.password}
+                  {...register("password")}
                 />
+                <FieldError>{errors.password?.message}</FieldError>
               </Field>
               <Field>
                 <Button className="h-10" type="submit">

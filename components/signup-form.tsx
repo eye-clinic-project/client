@@ -1,8 +1,10 @@
 "use client"
 
-import { useState, type FormEvent } from "react"
+import { useState } from "react"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { cn } from "cn"
 import Link from "next/link"
+import { useForm } from "react-hook-form"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -15,11 +17,13 @@ import {
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
   FieldSeparator,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { signupSchema, type SignupFormValues } from "@/lib/validation/auth"
 
 export function SignupForm({
   className,
@@ -29,16 +33,15 @@ export function SignupForm({
     message: string
     isError: boolean
   } | null>(null)
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<SignupFormValues>({
+    resolver: zodResolver(signupSchema),
+  })
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const formData = new FormData(event.currentTarget)
-
-    if (formData.get("password") !== formData.get("confirm-password")) {
-      setFeedback({ message: "Passwords do not match.", isError: true })
-      return
-    }
-
+  function onSubmit() {
     setFeedback({
       message: "Account creation is not configured yet. Your details were not sent.",
       isError: false,
@@ -56,7 +59,8 @@ export function SignupForm({
         </CardHeader>
         <CardContent className="px-6 pb-8 sm:px-8">
           <form
-            onSubmit={handleSubmit}
+            noValidate
+            onSubmit={handleSubmit(onSubmit)}
             onChange={() => setFeedback(null)}
           >
             <FieldGroup className="gap-5">
@@ -68,9 +72,10 @@ export function SignupForm({
                   placeholder="m@example.com"
                   className="h-10"
                   autoComplete="email"
-                  name="email"
-                  required
+                  aria-invalid={!!errors.email}
+                  {...register("email")}
                 />
+                <FieldError>{errors.email?.message}</FieldError>
                 <FieldDescription>
                   We&apos;ll use this to contact you. We will not share your
                   email with anyone else.
@@ -85,10 +90,10 @@ export function SignupForm({
                       type="password"
                       className="h-10"
                       autoComplete="new-password"
-                      name="password"
-                      minLength={8}
-                      required
+                      aria-invalid={!!errors.password}
+                      {...register("password")}
                     />
+                    <FieldError>{errors.password?.message}</FieldError>
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="confirm-password">
@@ -99,14 +104,16 @@ export function SignupForm({
                       type="password"
                       className="h-10"
                       autoComplete="new-password"
-                      name="confirm-password"
-                      minLength={8}
-                      required
+                      aria-invalid={!!errors.confirmPassword}
+                      {...register("confirmPassword")}
                     />
+                    <FieldError>
+                      {errors.confirmPassword?.message}
+                    </FieldError>
                   </Field>
                 </Field>
                 <FieldDescription>
-                  Must be at least 8 characters long.
+                  Use a password with at least 8 characters.
                 </FieldDescription>
               </Field>
               <Field>

@@ -1,7 +1,7 @@
-import React from 'react'
+import type { ReactNode } from "react"
 
-export default function layout() {
-  return (
-    <div>layout</div>
-  )
+import { PanelShell } from "@/components/panel/panel-shell"
+
+export default function PanelLayout({ children }: { children: ReactNode }) {
+  return <PanelShell>{children}</PanelShell>
 }

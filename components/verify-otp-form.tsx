@@ -1,9 +1,11 @@
 "use client"
 
-import { useState, type FormEvent } from "react"
+import { useState } from "react"
+import { zodResolver } from "@hookform/resolvers/zod"
 import Link from "next/link"
 import { ArrowLeft, ShieldCheck } from "lucide-react"
 import { REGEXP_ONLY_DIGITS } from "input-otp"
+import { Controller, useForm } from "react-hook-form"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -13,18 +15,29 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { FieldError } from "@/components/ui/field"
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp"
+import {
+  verifyOtpSchema,
+  type VerifyOtpFormValues,
+} from "@/lib/validation/auth"
 
 export function VerifyOtpForm() {
-  const [code, setCode] = useState("")
   const [feedback, setFeedback] = useState<string | null>(null)
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<VerifyOtpFormValues>({
+    resolver: zodResolver(verifyOtpSchema),
+    defaultValues: { code: "" },
+  })
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  function onSubmit() {
     setFeedback("Code verification is not configured yet. The code was not checked.")
   }
 
@@ -44,30 +57,44 @@ export function VerifyOtpForm() {
         </CardDescription>
       </CardHeader>
       <CardContent className="px-6 pb-8 sm:px-8">
-        <form onSubmit={handleSubmit} onChange={() => setFeedback(null)}>
+        <form
+          noValidate
+          onSubmit={handleSubmit(onSubmit)}
+          onChange={() => setFeedback(null)}
+        >
           <div className="flex flex-col items-center gap-6">
-            <InputOTP
-              aria-label="6-digit verification code"
-              maxLength={6}
-              pattern={REGEXP_ONLY_DIGITS}
-              value={code}
-              onChange={(value) => {
-                setCode(value)
-                setFeedback(null)
-              }}
-              required
-            >
-              <InputOTPGroup>
-                {Array.from({ length: 6 }, (_, index) => (
-                  <InputOTPSlot
-                    key={index}
-                    index={index}
-                    className="size-11 text-base sm:size-12"
-                  />
-                ))}
-              </InputOTPGroup>
-            </InputOTP>
-            <Button className="h-10 w-full" type="submit" disabled={code.length !== 6}>
+            <Controller
+              control={control}
+              name="code"
+              render={({ field }) => (
+                <InputOTP
+                  aria-label="6-digit verification code"
+                  aria-invalid={!!errors.code}
+                  maxLength={6}
+                  pattern={REGEXP_ONLY_DIGITS}
+                  value={field.value}
+                  onBlur={field.onBlur}
+                  onChange={(value) => {
+                    field.onChange(value)
+                    setFeedback(null)
+                  }}
+                >
+                  <InputOTPGroup>
+                    {Array.from({ length: 6 }, (_, index) => (
+                      <InputOTPSlot
+                        key={index}
+                        index={index}
+                        className="size-11 text-base sm:size-12"
+                      />
+                    ))}
+                  </InputOTPGroup>
+                </InputOTP>
+              )}
+            />
+            <FieldError className="text-center">
+              {errors.code?.message}
+            </FieldError>
+            <Button className="h-10 w-full" type="submit">
               Verify code
             </Button>
             {feedback && (

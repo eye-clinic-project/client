@@ -1,8 +1,10 @@
 "use client"
 
-import { useState, type FormEvent } from "react"
+import { useState } from "react"
+import { zodResolver } from "@hookform/resolvers/zod"
 import Link from "next/link"
 import { ArrowLeft, Mail } from "lucide-react"
+import { useForm } from "react-hook-form"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -15,16 +17,27 @@ import {
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import {
+  forgotPasswordSchema,
+  type ForgotPasswordFormValues,
+} from "@/lib/validation/auth"
 
 export function ForgotPasswordForm() {
   const [feedback, setFeedback] = useState<string | null>(null)
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<ForgotPasswordFormValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+  })
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  function onSubmit() {
     setFeedback(
       "Password recovery is not configured yet. No email has been sent."
     )
@@ -46,19 +59,24 @@ export function ForgotPasswordForm() {
         </CardDescription>
       </CardHeader>
       <CardContent className="px-6 pb-8 sm:px-8">
-        <form onSubmit={handleSubmit} onChange={() => setFeedback(null)}>
+        <form
+          noValidate
+          onSubmit={handleSubmit(onSubmit)}
+          onChange={() => setFeedback(null)}
+        >
           <FieldGroup className="gap-5">
             <Field>
               <FieldLabel htmlFor="email">Email</FieldLabel>
               <Input
                 id="email"
-                name="email"
                 type="email"
                 placeholder="you@example.com"
                 autoComplete="email"
                 className="h-10"
-                required
+                aria-invalid={!!errors.email}
+                {...register("email")}
               />
+              <FieldError>{errors.email?.message}</FieldError>
               <FieldDescription>
                 We won’t send anything until password recovery is connected.
               </FieldDescription>

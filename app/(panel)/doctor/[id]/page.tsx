@@ -1,12 +1,5 @@
-import { Button } from "@/components/ui/button"
+import { DoctorDashboard } from "@/components/panel/doctor-dashboard"
 
-export default async function Page() {
-  
-  return (
-    <div className="flex min-h-svh p-6">
-      <div className="flex max-w-md min-w-0 flex-col gap-4 text-sm leading-loose">
-        doctor
-      </div>
-    </div>
-  )
+export default function DoctorPanelPage() {
+  return <DoctorDashboard />
 }
