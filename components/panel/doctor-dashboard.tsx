@@ -28,53 +28,39 @@ import {
 } from "@/components/ui/card"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { useProfile } from "@/components/panel/use-profile"
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks"
+import {
+  patientAdded,
+  type PatientRecord,
+} from "@/lib/redux/features/workspace/workspaceSlice"
 import {
   createPatientSchema,
   type CreatePatientValues,
 } from "@/lib/validation/patient"
 
-type Patient = CreatePatientValues & {
-  lastVisit: string
-  status: "Needs review" | "Stable" | "Follow-up"
-}
-
-const initialPatients: Patient[] = [
-  {
-    name: "Maya Johnson",
-    email: "maya.johnson@example.com",
-    patientId: "PT-1048",
-    age: 58,
-    lastVisit: "Today, 9:42 AM",
-    status: "Needs review",
-  },
-  {
-    name: "Noah Williams",
-    email: "noah.williams@example.com",
-    patientId: "PT-1047",
-    age: 64,
-    lastVisit: "Today, 8:15 AM",
-    status: "Follow-up",
-  },
-  {
-    name: "Sophia Chen",
-    email: "sophia.chen@example.com",
-    patientId: "PT-1042",
-    age: 51,
-    lastVisit: "Oct 18, 2026",
-    status: "Stable",
-  },
-  {
-    name: "Liam Patel",
-    email: "liam.patel@example.com",
-    patientId: "PT-1039",
-    age: 72,
-    lastVisit: "Oct 17, 2026",
-    status: "Needs review",
-  },
-]
+type Patient = PatientRecord
 
 export function DoctorDashboard() {
-  const [patients, setPatients] = useState(initialPatients)
+  const patients = useAppSelector((state) => state.workspace.patients)
+  const allAppointments = useAppSelector(
+    (state) => state.workspace.appointments
+  )
+  const appointments = useMemo(
+    () => allAppointments.filter((appointment) => appointment.patient !== "Alex Morgan"),
+    [allAppointments]
+  )
+  const screenings = useAppSelector((state) => state.workspace.screenings)
+  const reports = useAppSelector((state) => state.workspace.reports)
+  const activity = useAppSelector((state) => state.workspace.activity)
+  const dispatch = useAppDispatch()
+  const profile = useProfile("doctor")
+  const awaitingReviewCount = screenings.filter(
+    (screening) => screening.status === "Doctor review recommended"
+  ).length
+  const reportsToSendCount = reports.filter(
+    (report) => report.status === "Awaiting doctor review"
+  ).length
   const [query, setQuery] = useState("")
   const [addingPatient, setAddingPatient] = useState(false)
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)
@@ -100,14 +86,13 @@ export function DoctorDashboard() {
   }, [patients, query])
 
   function addPatient(values: CreatePatientValues) {
-    setPatients((current) => [
-      {
+    dispatch(
+      patientAdded({
         ...values,
         lastVisit: "Just added",
         status: "Stable",
-      },
-      ...current,
-    ])
+      })
+    )
     reset()
     setAddingPatient(false)
   }
@@ -146,7 +131,7 @@ export function DoctorDashboard() {
         <div>
           <p className="text-sm font-medium text-primary">Tuesday, October 20</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-            Good morning, Dr. Taylor
+            Good morning, {profile.name}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Here’s an overview of your diabetic retinopathy clinic.
@@ -173,21 +158,21 @@ export function DoctorDashboard() {
         />
         <MetricCard
           label="Awaiting review"
-          value="8"
-          note="2 added since yesterday"
+          value={awaitingReviewCount.toString()}
+          note="Sample results requiring review"
           icon={Eye}
           trend="up"
         />
         <MetricCard
           label="Appointments today"
-          value="6"
+          value={appointments.length.toString()}
           note="Next appointment at 10:30"
           icon={CalendarDays}
         />
         <MetricCard
           label="Reports to send"
-          value="3"
-          note="Ready for patient review"
+          value={reportsToSendCount.toString()}
+          note="Pending doctor review"
           icon={FileImage}
         />
       </section>
@@ -316,24 +301,18 @@ export function DoctorDashboard() {
             <CardDescription>Your next scheduled visits</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <Appointment
-              name="Maya Johnson"
-              reason="Retinal screening review"
-              time="10:30 AM"
-              initials="MJ"
-            />
-            <Appointment
-              name="Noah Williams"
-              reason="Follow-up consultation"
-              time="11:15 AM"
-              initials="NW"
-            />
-            <Appointment
-              name="Olivia Brown"
-              reason="Fundus imaging"
-              time="1:00 PM"
-              initials="OB"
-            />
+            {appointments.slice(0, 3).map((appointment) => (
+              <Appointment
+                key={appointment.id}
+                name={appointment.patient}
+                reason={appointment.reason}
+                time={appointment.time}
+                initials={appointment.patient
+                  .split(" ")
+                  .map((part) => part[0])
+                  .join("")}
+              />
+            ))}
             <Button variant="outline" className="w-full" asChild>
               <a href="#appointments">View schedule</a>
             </Button>
@@ -380,21 +359,20 @@ export function DoctorDashboard() {
             <CardDescription>Latest updates in your workspace</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <ActivityLine
-              icon={Check}
-              title="Screening reviewed"
-              detail="Maya Johnson · Today at 9:42 AM"
-            />
-            <ActivityLine
-              icon={FileImage}
-              title="Report ready to send"
-              detail="Noah Williams · Today at 8:15 AM"
-            />
-            <ActivityLine
-              icon={CalendarDays}
-              title="Appointment confirmed"
-              detail="Sophia Chen · Yesterday"
-            />
+            {activity.map((item) => (
+              <ActivityLine
+                key={item.id}
+                icon={
+                  item.type === "screening"
+                    ? Check
+                    : item.type === "report"
+                      ? FileImage
+                      : CalendarDays
+                }
+                title={item.title}
+                detail={item.detail}
+              />
+            ))}
           </CardContent>
         </Card>
       </section>
@@ -544,6 +522,7 @@ function PatientRecord({
   patient: Patient
   onBack: () => void
 }) {
+  const screenings = useAppSelector((state) => state.workspace.screenings)
   const [uploadMessage, setUploadMessage] = useState<string | null>(null)
 
   return (
@@ -589,9 +568,14 @@ function PatientRecord({
             <CardDescription>Previous scans and reports · sample</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <ScreeningHistoryItem date="Oct 20, 2026" grade="Moderate DR" confidence="92%" />
-            <ScreeningHistoryItem date="Apr 12, 2026" grade="Mild DR" confidence="88%" />
-            <ScreeningHistoryItem date="Oct 06, 2025" grade="No DR" confidence="95%" />
+            {screenings.map((screening) => (
+              <ScreeningHistoryItem
+                key={screening.date}
+                date={screening.date}
+                grade={screening.grade}
+                confidence={`${screening.confidence}%`}
+              />
+            ))}
           </CardContent>
         </Card>
       </div>

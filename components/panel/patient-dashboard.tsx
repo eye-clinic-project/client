@@ -12,6 +12,7 @@ import {
   ShieldCheck,
 } from "lucide-react"
 
+import { useProfile } from "@/components/panel/use-profile"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -21,33 +22,18 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-
-const screeningHistory = [
-  {
-    date: "October 20, 2026",
-    result: "Moderate diabetic retinopathy",
-    confidence: 92,
-    status: "Doctor review recommended",
-    tone: "amber",
-  },
-  {
-    date: "April 12, 2026",
-    result: "Mild diabetic retinopathy",
-    confidence: 88,
-    status: "Report available",
-    tone: "blue",
-  },
-  {
-    date: "October 06, 2025",
-    result: "No signs of diabetic retinopathy",
-    confidence: 95,
-    status: "Report available",
-    tone: "green",
-  },
-] as const
+import { useAppSelector } from "@/lib/redux/hooks"
 
 export function PatientDashboard() {
-  const latestScreening = screeningHistory[0]
+  const profile = useProfile("patient")
+  const screenings = useAppSelector((state) => state.workspace.screenings)
+  const appointment = useAppSelector((state) =>
+    state.workspace.appointments.find((item) => item.patient === profile.name)
+  )
+  const report = useAppSelector((state) =>
+    state.workspace.reports.find((item) => item.status === "Awaiting doctor review")
+  )
+  const latestScreening = screenings[0]
   const [actionMessage, setActionMessage] = useState<string | null>(null)
   const [historyMessage, setHistoryMessage] = useState<string | null>(null)
   const [appointmentMessage, setAppointmentMessage] = useState<string | null>(
@@ -64,7 +50,7 @@ export function PatientDashboard() {
         <div>
           <p className="text-sm font-medium text-primary">Patient portal</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-            Good morning, Alex
+            Good morning, {profile.name.split(" ")[0]}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Review your eye health updates and upcoming care.
@@ -95,13 +81,13 @@ export function PatientDashboard() {
                     Review recommended
                   </span>
                 </div>
-                <CardDescription>Fundus image analysis · October 20, 2026</CardDescription>
+                <CardDescription>Fundus image analysis · {latestScreening.date}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
                   <p className="text-sm text-muted-foreground">Screening result</p>
                   <p className="mt-1 text-xl font-semibold">
-                    {latestScreening.result}
+                    {latestScreening.grade}
                   </p>
                   <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
                     This screening result should be discussed with your eye-care
@@ -212,7 +198,7 @@ export function PatientDashboard() {
             </Button>
           </CardHeader>
           <CardContent className="space-y-3">
-            {screeningHistory.map((screening) => (
+            {screenings.map((screening) => (
               <ScreeningCard key={screening.date} screening={screening} />
             ))}
             {historyMessage && (
@@ -235,14 +221,20 @@ export function PatientDashboard() {
                   <CalendarDays className="size-5" />
                 </div>
                 <div>
-                  <p className="font-medium">Eye health follow-up</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Dr. Taylor · Thursday, Oct 29
-                  </p>
-                  <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                    <Clock3 className="size-3.5" />
-                    10:30 AM · In clinic
-                  </p>
+                  {appointment ? (
+                    <>
+                      <p className="font-medium">{appointment.reason}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Dr. Taylor · {appointment.date}
+                      </p>
+                      <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                        <Clock3 className="size-3.5" />
+                        {appointment.time} · {appointment.location}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="font-medium">No upcoming appointment</p>
+                  )}
                 </div>
               </div>
               <Button
@@ -275,10 +267,10 @@ export function PatientDashboard() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">
-                    Screening report · Oct 20
+                    Screening report · {report?.date ?? "No report"}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Awaiting doctor review
+                    {report?.status ?? "No report available"}
                   </p>
                 </div>
               </div>
@@ -325,9 +317,15 @@ export function PatientDashboard() {
 function ScreeningCard({
   screening,
 }: {
-  screening: (typeof screeningHistory)[number]
+  screening: {
+    date: string
+    grade: string
+    confidence: number
+    status: string
+    tone: "amber" | "blue" | "green"
+  }
 }) {
-  const toneClasses: Record<(typeof screeningHistory)[number]["tone"], string> = {
+  const toneClasses: Record<typeof screening.tone, string> = {
     amber: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
     blue: "bg-blue-500/10 text-blue-700 dark:text-blue-300",
     green: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
@@ -340,7 +338,7 @@ function ScreeningCard({
           <Activity className="size-4" />
         </span>
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium">{screening.result}</p>
+          <p className="truncate text-sm font-medium">{screening.grade}</p>
           <p className="mt-1 text-xs text-muted-foreground">{screening.date}</p>
         </div>
       </div>

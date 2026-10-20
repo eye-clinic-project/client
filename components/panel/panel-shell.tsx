@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, type ReactNode } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -12,11 +13,14 @@ import {
   LayoutDashboard,
   Menu,
   MessageCircle,
+  Settings,
   Users,
   X,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { useProfile } from "@/components/panel/use-profile"
 import { cn } from "@/lib/utils"
 
 type NavigationItem = {
@@ -31,6 +35,7 @@ const doctorNavigation: NavigationItem[] = [
   { label: "Image analysis", segment: "analysis", icon: Activity },
   { label: "Appointments", segment: "appointments", icon: CalendarDays },
   { label: "Messages", segment: "messages", icon: MessageCircle },
+  { label: "Settings", segment: "settings", icon: Settings },
 ]
 
 const patientNavigation: NavigationItem[] = [
@@ -39,6 +44,7 @@ const patientNavigation: NavigationItem[] = [
   { label: "Appointments", segment: "appointments", icon: CalendarDays },
   { label: "Reports", segment: "reports", icon: FileText },
   { label: "Messages", segment: "messages", icon: MessageCircle },
+  { label: "Settings", segment: "settings", icon: Settings },
 ]
 
 export function PanelShell({ children }: { children: ReactNode }) {
@@ -46,9 +52,12 @@ export function PanelShell({ children }: { children: ReactNode }) {
   const isPatient = pathname.startsWith("/patient")
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const navigation = isPatient ? patientNavigation : doctorNavigation
-  const routeBase = pathname.split("/").slice(0, 3).join("/")
+  const profile = useProfile(isPatient ? "patient" : "doctor")
+  const routeBase = pathname.startsWith("/doctor") || isPatient
+    ? pathname.split("/").slice(0, 3).join("/")
+    : "/doctor/demo"
   const panelName = isPatient ? "Patient portal" : "Doctor workspace"
-  const userName = isPatient ? "Alex Morgan" : "Dr. Taylor"
+  const userName = profile.name
 
   return (
     <div className="min-h-svh bg-muted/30">
@@ -111,15 +120,27 @@ export function PanelShell({ children }: { children: ReactNode }) {
             </span>
           </div>
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <span className="hidden rounded-full border bg-muted/50 px-3 py-1 text-xs text-muted-foreground sm:inline-flex">
               Demo data
             </span>
             <div
               aria-label={userName}
-              className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
+              className="flex size-9 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-xs font-semibold text-primary"
               title={userName}
             >
-              {isPatient ? "AM" : "DT"}
+              {profile.avatar ? (
+                <Image
+                  src={profile.avatar}
+                  alt=""
+                  width={36}
+                  height={36}
+                  unoptimized
+                  className="size-full object-cover"
+                />
+              ) : (
+                profileInitials(userName)
+              )}
             </div>
             <span className="hidden text-sm font-medium sm:inline">{userName}</span>
           </div>
@@ -201,4 +222,14 @@ function RoleSwitcher({ isPatient }: { isPatient: boolean }) {
       </p>
     </div>
   )
+}
+
+function profileInitials(name: string) {
+  return name
+    .trim()
+    .split(/\s+/)
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase()
 }

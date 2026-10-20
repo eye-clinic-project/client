@@ -25,23 +25,28 @@ import {
 import { Input } from "@/components/ui/input"
 import { signupSchema, type SignupFormValues } from "@/lib/validation/auth"
 
+type MessageErrorType = { message: string, isError: boolean }
+
 export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const [feedback, setFeedback] = useState<{
-    message: string
-    isError: boolean
-  } | null>(null)
+
+
+  const [feedback, setFeedback] = useState<MessageErrorType | null>(null)
+
+
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
+    
   })
 
   function onSubmit() {
+    // api call
     setFeedback({
       message: "Account creation is not configured yet. Your details were not sent.",
       isError: false,

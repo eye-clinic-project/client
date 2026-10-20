@@ -29,6 +29,7 @@ import {
 
 export function ForgotPasswordForm() {
   const [feedback, setFeedback] = useState<string | null>(null)
+
   const {
     register,
     handleSubmit,
@@ -38,6 +39,7 @@ export function ForgotPasswordForm() {
   })
 
   function onSubmit() {
+    // api call
     setFeedback(
       "Password recovery is not configured yet. No email has been sent."
     )
