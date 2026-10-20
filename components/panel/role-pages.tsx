@@ -43,9 +43,11 @@ type Patient = PatientRecord
 export function DoctorPatientsPage() {
   const patients = useAppSelector((state) => state.workspace.patients)
   const dispatch = useAppDispatch()
+
   const [query, setQuery] = useState("")
   const [showForm, setShowForm] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+
   const {
     register,
     handleSubmit,
@@ -54,9 +56,13 @@ export function DoctorPatientsPage() {
   } = useForm<CreatePatientValues>({
     resolver: zodResolver(createPatientSchema),
   })
+
   const filteredPatients = useMemo(() => {
+
     const term = query.trim().toLowerCase()
+
     if (!term) return patients
+
     return patients.filter((patient) =>
       [patient.name, patient.patientId, patient.email].some((value) =>
         value.toLowerCase().includes(term)
@@ -64,6 +70,7 @@ export function DoctorPatientsPage() {
     )
   }, [patients, query])
 
+  
   function addPatient(values: CreatePatientValues) {
     dispatch(
       patientAdded({
@@ -316,13 +323,8 @@ export function DoctorAnalysisPage() {
 export function DoctorAppointmentsPage() {
 
   const allAppointments = useAppSelector((state) => state.workspace.appointments)
-  const appointments = useMemo(
-    () => allAppointments.filter((item) => item.patient !== "Alex Morgan"),
-    [allAppointments]
-  )
-  const [appointmentMessage, setAppointmentMessage] = useState<string | null>(
-    null
-  )
+  const appointments = useMemo(() => allAppointments.filter((item) => item.patient !== "Alex Morgan"),[allAppointments])
+  const [appointmentMessage, setAppointmentMessage] = useState<string | null>(null)
 
   return (
     <PageHeading
@@ -398,9 +400,8 @@ export function DoctorAppointmentsPage() {
 }
 
 export function DoctorMessagesPage() {
-  const conversations = useAppSelector(
-    (state) => state.workspace.conversations
-  )
+
+  const conversations = useAppSelector((state) => state.workspace.conversations)
   const [message, setMessage] = useState("")
   const [feedback, setFeedback] = useState<string | null>(null)
 

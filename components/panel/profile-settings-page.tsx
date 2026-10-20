@@ -34,8 +34,11 @@ export function ProfileSettingsPage({
 }: {
   role: ProfileRole
 }) {
+
   const profile = useProfile(role)
+  
   const dispatch = useAppDispatch()
+
   const [avatar, setAvatar] = useState<string | null>(null)
   const [profileFeedback, setProfileFeedback] = useState<string | null>(null)
   const [profileError, setProfileError] = useState<string | null>(null)
