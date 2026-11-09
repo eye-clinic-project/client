@@ -18,6 +18,7 @@ import {
   Spinner,
   StatusChip,
 } from "@/components/rc/ui"
+import { useI18n } from "@/components/i18n-provider"
 import { useApi, useCooldown } from "@/hooks/use-api"
 import { useSession } from "@/hooks/use-session"
 import { errorMessage, RateLimitError } from "@/service/api-client"
@@ -37,6 +38,8 @@ function groupByDay<T>(items: T[], at: (item: T) => string) {
 
 export function DoctorAppointments() {
   const { me } = useSession()
+  const { t } = useI18n()
+  const A = t.appointments
   const [view, setView] = useState<"upcoming" | "past">("upcoming")
   const nowIso = useMemo(() => new Date().toISOString(), [])
   const list = useApi(
@@ -55,10 +58,10 @@ export function DoctorAppointments() {
 
   return (
     <>
-      <PageTitle>Appointments</PageTitle>
+      <PageTitle>{A.title}</PageTitle>
       <div className="flex flex-wrap items-start gap-6">
         <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-4">
-          <div role="tablist" aria-label="Appointments" className="flex w-fit gap-1 rounded-xl bg-muted p-1">
+          <div role="tablist" aria-label={A.title} className="flex w-fit gap-1 rounded-xl bg-muted p-1">
             {(["upcoming", "past"] as const).map((key) => (
               <button
                 key={key}
@@ -67,11 +70,11 @@ export function DoctorAppointments() {
                 aria-selected={view === key}
                 onClick={() => setView(key)}
                 className={cn(
-                  "h-10 rounded-[9px] px-4 text-sm font-semibold capitalize",
+                  "h-10 rounded-[9px] px-4 text-sm font-semibold",
                   view === key ? "bg-card shadow-sm" : "text-subtle-foreground hover:text-foreground",
                 )}
               >
-                {key}
+                {A[key]}
               </button>
             ))}
           </div>
@@ -80,8 +83,8 @@ export function DoctorAppointments() {
             <Spinner />
           ) : items.length === 0 ? (
             <Card>
-              <EmptyState title={view === "upcoming" ? "No upcoming appointments" : "No past appointments"}>
-                {view === "upcoming" && "Open time slots so patients can book a visit."}
+              <EmptyState title={view === "upcoming" ? A.noneUpcoming : A.nonePast}>
+                {view === "upcoming" && A.openHint}
               </EmptyState>
             </Card>
           ) : (
@@ -108,7 +111,7 @@ export function DoctorAppointments() {
         <aside className="flex flex-[1_1_340px] flex-col gap-5">
           <OpenSlots onCreated={() => void slots.reload()} />
           <Card className="overflow-hidden">
-            <CardHeader title="Your open slots" />
+            <CardHeader title={A.yourSlots} />
             {slots.loading && !slots.data ? (
               <Spinner />
             ) : (
@@ -123,12 +126,14 @@ export function DoctorAppointments() {
 
 function AppointmentRow({ appointment: a, onChange }: { appointment: Appointment; onChange: (a: Appointment) => void }) {
   const patient = userOf(a.patient)
+  const { t } = useI18n()
+  const A = t.appointments
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const started = new Date(a.scheduledAt) <= new Date()
 
   async function act(kind: "confirm" | "complete" | "cancel") {
-    if (kind === "cancel" && !window.confirm(`Cancel the appointment with ${patient?.name ?? "this patient"}?`)) return
+    if (kind === "cancel" && !window.confirm(A.cancelAsk(patient?.name ?? A.thisPatient))) return
     setBusy(kind)
     setError(null)
     try {
@@ -154,25 +159,25 @@ function AppointmentRow({ appointment: a, onChange }: { appointment: Appointment
       </span>
       <Avatar name={patient?.name ?? "?"} size={36} />
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="font-semibold">{patient?.name ?? "Patient"}</span>
-        <span className="truncate text-[13px] text-muted-foreground">{a.reason || "Appointment"}</span>
-        {a.cancelReason && <span className="text-[13px] text-muted-foreground">Reason: {a.cancelReason}</span>}
+        <span className="font-semibold">{patient?.name ?? t.common.patient}</span>
+        <span className="truncate text-[13px] text-muted-foreground">{a.reason || t.dashboard.appointment}</span>
+        {a.cancelReason && <span className="text-[13px] text-muted-foreground">{A.reason(a.cancelReason)}</span>}
       </span>
       <StatusChip status={a.status} />
       {open && (
         <span className="flex gap-2">
           {a.status === "pending" && (
             <Button size="sm" loading={busy === "confirm"} disabled={!!busy} onClick={() => act("confirm")}>
-              Confirm
+              {A.confirm}
             </Button>
           )}
           {a.status === "confirmed" && started && (
             <Button size="sm" loading={busy === "complete"} disabled={!!busy} onClick={() => act("complete")}>
-              Complete
+              {A.complete}
             </Button>
           )}
           <Button size="sm" variant="danger" loading={busy === "cancel"} disabled={!!busy} onClick={() => act("cancel")}>
-            Cancel
+            {A.cancel}
           </Button>
         </span>
       )}
@@ -183,6 +188,8 @@ function AppointmentRow({ appointment: a, onChange }: { appointment: Appointment
 
 function OpenSlots({ onCreated }: { onCreated: () => void }) {
   const cooldown = useCooldown()
+  const { t } = useI18n()
+  const A = t.appointments
   const today = new Date().toISOString().slice(0, 10)
   const [date, setDate] = useState(today)
   const [start, setStart] = useState("09:00")
@@ -198,8 +205,8 @@ function OpenSlots({ onCreated }: { onCreated: () => void }) {
     setDone(null)
     const startAt = new Date(`${date}T${start}`)
     const endAt = new Date(`${date}T${end}`)
-    if (!(endAt > startAt)) return setError("The end time must be after the start time.")
-    if (startAt <= new Date()) return setError("Choose a time in the future.")
+    if (!(endAt > startAt)) return setError(A.endAfterStart)
+    if (startAt <= new Date()) return setError(A.future)
     setBusy(true)
     try {
       const created = await availabilityService.create({
@@ -207,7 +214,7 @@ function OpenSlots({ onCreated }: { onCreated: () => void }) {
         endAt: endAt.toISOString(),
         slotMinutes: minutes,
       })
-      setDone(`${created.length} slot${created.length === 1 ? "" : "s"} opened on ${fmtLongDay(startAt)}.`)
+      setDone(A.opened(created.length, fmtLongDay(startAt)))
       onCreated()
     } catch (err) {
       cooldown.trip(err)
@@ -219,35 +226,35 @@ function OpenSlots({ onCreated }: { onCreated: () => void }) {
 
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4 rounded-2xl border bg-card p-6">
-      <h2 className="text-lg font-semibold">Open time slots</h2>
-      <p className="-mt-2 text-sm text-muted-foreground">Patients can book any open slot. You confirm each request.</p>
+      <h2 className="text-lg font-semibold">{A.openTitle}</h2>
+      <p className="-mt-2 text-sm text-muted-foreground">{A.openSubtitle}</p>
       {error && <Alert>{error}</Alert>}
       {done && <Alert tone="success">{done}</Alert>}
       <RateLimitNotice remaining={cooldown.remaining} />
-      <Field label="Day">
+      <Field label={A.day}>
         {(p) => <Input {...p} type="date" min={today} value={date} onChange={(e) => setDate(e.target.value)} />}
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="From">
+        <Field label={A.from}>
           {(p) => <Input {...p} type="time" step={900} value={start} onChange={(e) => setStart(e.target.value)} />}
         </Field>
-        <Field label="To">
+        <Field label={A.to}>
           {(p) => <Input {...p} type="time" step={900} value={end} onChange={(e) => setEnd(e.target.value)} />}
         </Field>
       </div>
-      <Field label="Visit length">
+      <Field label={A.length}>
         {(p) => (
           <Select {...p} value={minutes} onChange={(e) => setMinutes(Number(e.target.value))}>
             {[15, 20, 30, 45, 60].map((m) => (
               <option key={m} value={m}>
-                {m} minutes
+                {A.minutes(m)}
               </option>
             ))}
           </Select>
         )}
       </Field>
       <Button type="submit" loading={busy} disabled={cooldown.active}>
-        Open slots
+        {A.openButton}
       </Button>
     </form>
   )
@@ -255,7 +262,8 @@ function OpenSlots({ onCreated }: { onCreated: () => void }) {
 
 function SlotList({ slots, onRemoved }: { slots: Slot[]; onRemoved: () => void }) {
   const [error, setError] = useState<string | null>(null)
-  if (!slots.length) return <EmptyState title="No open slots" />
+  const { t } = useI18n()
+  if (!slots.length) return <EmptyState title={t.appointments.noSlots} />
   async function remove(id: string) {
     setError(null)
     try {
@@ -274,11 +282,11 @@ function SlotList({ slots, onRemoved }: { slots: Slot[]; onRemoved: () => void }
             <p className="mb-2 text-sm font-semibold">{fmtLongDay(rows[0]!.startAt)}</p>
             <div className="flex flex-wrap gap-2">
               {rows.map((s) => (
-                <span key={s.id} className="inline-flex items-center gap-1 rounded-[9px] border border-input py-1 pr-1 pl-3 text-sm">
+                <span key={s.id} className="inline-flex items-center gap-1 rounded-[9px] border border-input py-1 ps-3 pe-1 text-sm">
                   {fmtTime(s.startAt)}
                   <button
                     type="button"
-                    aria-label={`Remove slot at ${fmtTime(s.startAt)}`}
+                    aria-label={t.appointments.removeSlot(fmtTime(s.startAt))}
                     onClick={() => remove(s.id)}
                     className="flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-destructive"
                   >

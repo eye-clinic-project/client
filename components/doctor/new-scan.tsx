@@ -17,12 +17,13 @@ import {
   Textarea,
   controlClass,
 } from "@/components/rc/ui"
+import { useI18n } from "@/components/i18n-provider"
 import { useApi, useCooldown } from "@/hooks/use-api"
 import { errorMessage, RateLimitError } from "@/service/api-client"
 import { analysisService, imageService } from "@/service/analysis.service"
 import { patientService } from "@/service/patient.service"
 import type { Analysis, EyeSide, PatientListItem, PatientRecord } from "@/lib/api-types"
-import { ageFrom, DIABETES_LABELS, fmtBytes, fmtTime, userOf } from "@/lib/format"
+import { ageFrom, diabetesLabel, fmtBytes, fmtTime, userOf } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 const MAX_BYTES = 10 * 1024 * 1024
@@ -30,18 +31,12 @@ const TYPES = ["image/jpeg", "image/png"]
 
 type Phase = "idle" | "uploading" | "analysing" | "done" | "failed" | "saved"
 
-const STEPS = [
-  ["Image uploaded", "Stored encrypted, unmodified"],
-  ["Preprocessing", "Resize, crop, normalise, CLAHE"],
-  ["Stage 1 · DR detection", "DR / No DR + confidence"],
-  ["Stage 2 · Severity grade", "One of 5 grades, with TTA"],
-  ["Grad-CAM heatmap", "Regions behind the prediction"],
-] as const
-
 export function NewScanPage() {
   const params = useSearchParams()
   const router = useRouter()
   const cooldown = useCooldown()
+  const { t } = useI18n()
+  const s = t.scan
   const [patientId, setPatientId] = useState(params.get("patientId") ?? "")
   const [eye, setEye] = useState<EyeSide>("left")
   const [file, setFile] = useState<File | null>(null)
@@ -64,12 +59,12 @@ export function NewScanPage() {
     if (!next) return
     if (!TYPES.includes(next.type)) {
       setFile(null)
-      setFileError(`${next.name} was not added. Only JPEG and PNG images are allowed.`)
+      setFileError(s.wrongType(next.name))
       return
     }
     if (next.size > MAX_BYTES) {
       setFile(null)
-      setFileError(`${next.name} is ${fmtBytes(next.size)}. The limit is 10 MB.`)
+      setFileError(s.tooBig(next.name, fmtBytes(next.size)))
       return
     }
     setFile(next)
@@ -78,8 +73,8 @@ export function NewScanPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
-    if (!patientId) return setError("Choose a patient first.")
-    if (!file) return setFileError("Choose a fundus image to upload.")
+    if (!patientId) return setError(s.choosePatient)
+    if (!file) return setFileError(s.chooseImage)
     setPhase(analyze ? "analysing" : "uploading")
     setAnalysis(null)
     try {
@@ -145,25 +140,25 @@ export function NewScanPage() {
       <header className="flex flex-col gap-1.5">
         <p className="text-sm text-muted-foreground">
           <Link href="/doctor/patients" className="text-primary hover:underline">
-            Patients
+            {t.nav.patients}
           </Link>
           {p ? ` / ${p.name}` : ""}
         </p>
-        <h1 className="font-heading text-[28px] font-semibold tracking-tight sm:text-[32px]">Upload fundus image</h1>
+        <h1 className="font-heading text-[28px] font-semibold tracking-tight sm:text-[32px]">{s.title}</h1>
       </header>
 
       {failed.data && failed.data.items.length > 0 && (
         <Card className="flex flex-col gap-3 p-5">
-          <h2 className="text-[17px] font-semibold">Failed analyses</h2>
+          <h2 className="text-[17px] font-semibold">{s.failedTitle}</h2>
           <ul className="flex flex-col divide-y">
             {failed.data.items.map((a) => (
               <li key={a.id} className="flex flex-wrap items-center gap-3 py-3">
                 <span className="flex-1">
-                  <span className="font-semibold">{userOf(a.patient)?.name ?? "Patient"}</span>
-                  <span className="block text-[13px] text-muted-foreground">{a.error ?? "Analysis failed"}</span>
+                  <span className="font-semibold">{userOf(a.patient)?.name ?? t.common.patient}</span>
+                  <span className="block text-[13px] text-muted-foreground">{a.error ?? s.failedDefault}</span>
                 </span>
                 <Button size="sm" variant="outline" disabled={busy || cooldown.active} onClick={() => retry(a)}>
-                  Retry
+                  {t.common.retry}
                 </Button>
               </li>
             ))}
@@ -177,7 +172,7 @@ export function NewScanPage() {
           <RateLimitNotice remaining={cooldown.remaining} />
 
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-semibold">Patient</span>
+            <span className="text-sm font-semibold">{s.patient}</span>
             {p ? (
               <PatientCard patient={p} onChange={() => setPatientId("")} />
             ) : (
@@ -186,7 +181,7 @@ export function NewScanPage() {
           </div>
 
           <fieldset className="flex flex-col gap-3">
-            <legend className="mb-3 text-sm font-semibold">Eye</legend>
+            <legend className="mb-3 text-sm font-semibold">{s.eye}</legend>
             <div className="grid grid-cols-3 gap-3">
               {(["left", "right", "unknown"] as const).map((side) => (
                 <ChoiceCard
@@ -195,7 +190,7 @@ export function NewScanPage() {
                   value={side}
                   checked={eye === side}
                   onChange={() => setEye(side)}
-                  title={side === "unknown" ? "Unknown" : side === "left" ? "Left" : "Right"}
+                  title={t.eyeShort[side]}
                   className="items-center p-3.5"
                 />
               ))}
@@ -203,7 +198,7 @@ export function NewScanPage() {
           </fieldset>
 
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-semibold">Fundus image</span>
+            <span className="text-sm font-semibold">{s.image}</span>
             <DropZone onFile={pick} disabled={busy} />
             {file && (
               <div className="flex items-center gap-3 rounded-xl border p-3.5">
@@ -216,7 +211,7 @@ export function NewScanPage() {
                   {busy && (
                     <span
                       role="progressbar"
-                      aria-label="Upload progress"
+                      aria-label={s.progress}
                       className="h-1.5 overflow-hidden rounded-full bg-muted"
                     >
                       <span className="block h-full w-1/3 animate-[pulse_1.2s_ease-in-out_infinite] rounded-full bg-primary" />
@@ -226,7 +221,7 @@ export function NewScanPage() {
                 {!busy && (
                   <button
                     type="button"
-                    aria-label="Remove image"
+                    aria-label={s.remove}
                     onClick={() => setFile(null)}
                     className="flex size-10 items-center justify-center rounded-[9px] hover:bg-muted"
                   >
@@ -238,24 +233,24 @@ export function NewScanPage() {
             {fileError && <Alert>{fileError}</Alert>}
           </div>
 
-          <Field label="Notes" optional>
+          <Field label={s.notes} optional>
             {(f) => <Textarea {...f} rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />}
           </Field>
           <Checkbox checked={analyze} onChange={(e) => setAnalyze(e.target.checked)}>
-            Run AI analysis right after upload
+            {s.runAi}
           </Checkbox>
           <div className="flex flex-wrap gap-3">
             <Button type="submit" size="lg" loading={busy} disabled={cooldown.active}>
-              {analyze ? "Upload and analyse" : "Upload"}
+              {analyze ? s.uploadAnalyse : s.upload}
             </Button>
           </div>
         </form>
 
-        <aside aria-label="Analysis status" className="flex flex-[1_1_320px] flex-col gap-4">
+        <aside aria-label={s.statusLabel} className="flex flex-[1_1_320px] flex-col gap-4">
           <Card className="p-6">
-            <h2 className="mb-4 text-base font-semibold">Analysis pipeline</h2>
+            <h2 className="mb-4 text-base font-semibold">{s.pipeline}</h2>
             <ol className="flex flex-col gap-4">
-              {STEPS.map(([title, detail], i) => {
+              {s.steps.map(([title, detail], i) => {
                 const state =
                   phase === "done"
                     ? "done"
@@ -304,28 +299,28 @@ export function NewScanPage() {
 
           {phase === "failed" && analysis && (
             <section role="status" className="flex flex-col gap-3 rounded-2xl bg-warning-bg p-5 text-warning-fg">
-              <h2 className="text-base font-semibold">AI analysis did not finish</h2>
+              <h2 className="text-base font-semibold">{s.didNotFinish}</h2>
               <p className="text-sm leading-relaxed">
-                The image is saved to {p?.name ?? "the patient"}&apos;s record. {analysis.error ?? "The AI service is not available."}{" "}
-                Attempt {analysis.attempts} failed at {fmtTime(analysis.updatedAt)}.
+                {s.savedTo(p?.name ?? s.theFallback)} {analysis.error ?? s.aiUnavailable}{" "}
+                {s.attemptFailed(analysis.attempts, fmtTime(analysis.updatedAt))}
               </p>
               <div className="flex flex-wrap gap-3">
                 <Button size="sm" onClick={() => retry(analysis)} disabled={cooldown.active}>
-                  Retry analysis
+                  {s.retryAnalysis}
                 </Button>
                 <Link href={`/doctor/analyses/${analysis.id}`} className="self-center text-sm font-semibold underline">
-                  Open analysis
+                  {s.openAnalysis}
                 </Link>
               </div>
             </section>
           )}
           {phase === "saved" && (
-            <Alert tone="success" action={<Button size="sm" onClick={runSaved} disabled={cooldown.active}>Run analysis</Button>}>
-              Image saved to the patient&apos;s record.
+            <Alert tone="success" action={<Button size="sm" onClick={runSaved} disabled={cooldown.active}>{s.runAnalysis}</Button>}>
+              {s.imageSaved}
             </Alert>
           )}
           <p className="text-[13px] leading-snug text-muted-foreground">
-            Target: results in under 10 seconds. Results are decision support and must be confirmed by a qualified doctor.
+            {s.target}
           </p>
         </aside>
       </div>
@@ -334,12 +329,13 @@ export function NewScanPage() {
 }
 
 function PatientCard({ patient, onChange }: { patient: PatientRecord; onChange: () => void }) {
+  const { t } = useI18n()
   const age = ageFrom(patient.profile?.dateOfBirth)
   const dm = patient.profile?.diabetesType
   const meta = [
     patient.profile?.medicalRecordNumber,
-    age !== null ? `${age} y` : null,
-    dm ? `${DIABETES_LABELS[dm]} diabetes` : null,
+    age !== null ? t.patients.years(age) : null,
+    dm ? t.scan.diabetesLabel(diabetesLabel(dm)) : null,
   ].filter(Boolean)
   return (
     <div className="flex items-center gap-3 rounded-xl border p-3.5">
@@ -349,13 +345,14 @@ function PatientCard({ patient, onChange }: { patient: PatientRecord; onChange: 
         <span className="truncate text-[13px] text-muted-foreground">{meta.join(" · ")}</span>
       </span>
       <Button variant="outline" size="sm" onClick={onChange}>
-        Change
+        {t.scan.change}
       </Button>
     </div>
   )
 }
 
 function PatientPicker({ onPick }: { onPick: (id: string) => void }) {
+  const { t } = useI18n()
   const [q, setQ] = useState("")
   const [term, setTerm] = useState("")
   useEffect(() => {
@@ -366,23 +363,23 @@ function PatientPicker({ onPick }: { onPick: (id: string) => void }) {
   return (
     <div className="flex flex-col gap-2">
       <label htmlFor="pick-patient" className="sr-only">
-        Search your patients
+        {t.scan.searchLabel}
       </label>
       <input
         id="pick-patient"
         type="search"
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Search your patients by name, email or ID"
+        placeholder={t.scan.searchPlaceholder}
         className={controlClass}
       />
       <ul className="flex flex-col overflow-hidden rounded-xl border">
-        {loading && !data && <li className="px-4 py-3 text-sm text-muted-foreground">Searching…</li>}
+        {loading && !data && <li className="px-4 py-3 text-sm text-muted-foreground">{t.scan.searching}</li>}
         {data?.items.length === 0 && (
           <li className="px-4 py-3 text-sm text-muted-foreground">
-            No patients found.{" "}
+            {t.scan.noneFound}{" "}
             <Link href="/doctor/patients?add=1" className="font-semibold text-primary hover:underline">
-              Add a patient
+              {t.scan.addPatient}
             </Link>
           </li>
         )}
@@ -391,7 +388,7 @@ function PatientPicker({ onPick }: { onPick: (id: string) => void }) {
             <button
               type="button"
               onClick={() => onPick(p.id)}
-              className="flex w-full items-center gap-3 px-4 py-2.5 text-left hover:bg-muted"
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-start hover:bg-muted"
             >
               <Avatar name={p.name} size={32} />
               <span className="flex min-w-0 flex-col">
@@ -410,6 +407,7 @@ function PatientPicker({ onPick }: { onPick: (id: string) => void }) {
 
 function DropZone({ onFile, disabled }: { onFile: (f: File | undefined) => void; disabled?: boolean }) {
   const [over, setOver] = useState(false)
+  const { t } = useI18n()
   const input = useRef<HTMLInputElement>(null)
   const onDrop = (e: DragEvent) => {
     e.preventDefault()
@@ -433,9 +431,9 @@ function DropZone({ onFile, disabled }: { onFile: (f: File | undefined) => void;
     >
       <ImageUp className="mb-1 size-7 text-primary" aria-hidden="true" />
       <span className="text-[15px] font-semibold">
-        Drop an image here or <span className="text-primary underline">browse</span>
+        {t.scan.drop} <span className="text-primary underline">{t.scan.browse}</span>
       </span>
-      <span className="text-[13px] text-muted-foreground">JPEG or PNG, up to 10 MB</span>
+      <span className="text-[13px] text-muted-foreground">{t.scan.types}</span>
       <input
         ref={input}
         id="fundus-file"

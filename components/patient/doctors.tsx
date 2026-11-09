@@ -17,6 +17,7 @@ import {
   StatusChip,
   controlClass,
 } from "@/components/rc/ui"
+import { useI18n } from "@/components/i18n-provider"
 import { useApi, useCooldown } from "@/hooks/use-api"
 import { useSession } from "@/hooks/use-session"
 import { errorMessage, RateLimitError } from "@/service/api-client"
@@ -28,6 +29,8 @@ import { cn } from "@/lib/utils"
 export function PatientDoctors() {
   const { me } = useSession()
   const cooldown = useCooldown()
+  const { t } = useI18n()
+  const D = t.doctors
   const mine = useApi(me ? () => patientService.doctors(me.id) : null, [me?.id])
   const [q, setQ] = useState("")
   const [term, setTerm] = useState("")
@@ -48,7 +51,7 @@ export function PatientDoctors() {
     setDone(null)
     try {
       await assignmentService.create({ doctorId })
-      setDone(`Request sent. ${doctorName(name)} will be notified.`)
+      setDone(D.sent(doctorName(name)))
       void mine.reload()
     } catch (err) {
       cooldown.trip(err)
@@ -60,13 +63,13 @@ export function PatientDoctors() {
 
   return (
     <>
-      <PageTitle>Doctors</PageTitle>
+      <PageTitle>{D.title}</PageTitle>
       <Card className="overflow-hidden">
-        <CardHeader title="My doctors" />
+        <CardHeader title={D.mine} />
         {mine.loading && !mine.data ? (
           <Spinner />
         ) : !mine.data?.length ? (
-          <EmptyState title="No doctors yet">Find a doctor below and ask them to follow you.</EmptyState>
+          <EmptyState title={D.none}>{D.noneHint}</EmptyState>
         ) : (
           <ul>
             {mine.data.map(({ doctor, status }) => (
@@ -78,10 +81,10 @@ export function PatientDoctors() {
                     {[doctor.profile?.specialty, doctor.profile?.clinicName, doctor.city].filter(Boolean).join(" · ")}
                   </span>
                 </span>
-                <StatusChip status={status} label={status === "pending" ? "Request sent" : "Following you"} />
+                <StatusChip status={status} label={status === "pending" ? D.requestSent : D.following} />
                 {status === "active" && (
                   <ButtonLink href={`/patient/messages?with=${doctor.id}`} variant="outline" size="sm">
-                    Message
+                    {t.common.message}
                   </ButtonLink>
                 )}
               </li>
@@ -91,28 +94,28 @@ export function PatientDoctors() {
       </Card>
 
       <Card className="flex flex-col gap-4 p-5">
-        <h2 className="text-[17px] font-semibold">Find a doctor</h2>
+        <h2 className="text-[17px] font-semibold">{D.find}</h2>
         {error && <Alert>{error}</Alert>}
         {done && <Alert tone="success">{done}</Alert>}
         <RateLimitNotice remaining={cooldown.remaining} />
         <div className="relative">
           <label htmlFor="doctor-search" className="sr-only">
-            Search doctors by name
+            {D.searchLabel}
           </label>
-          <Search className="absolute top-1/2 left-3.5 size-[18px] -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <Search className="absolute top-1/2 start-3.5 size-[18px] -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
           <input
             id="doctor-search"
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search doctors by name"
-            className={cn(controlClass, "pl-10")}
+            placeholder={D.searchPlaceholder}
+            className={cn(controlClass, "ps-10")}
           />
         </div>
         {search.loading && !search.data ? (
           <Spinner />
         ) : !search.data?.items.length ? (
-          <EmptyState title="No doctors found" />
+          <EmptyState title={D.notFound} />
         ) : (
           <ul className="overflow-hidden rounded-xl border">
             {search.data.items.map((d) => {
@@ -127,7 +130,7 @@ export function PatientDoctors() {
                     </span>
                   </span>
                   {status ? (
-                    <StatusChip status={status} label={status === "pending" ? "Request sent" : "Following you"} />
+                    <StatusChip status={status} label={status === "pending" ? D.requestSent : D.following} />
                   ) : (
                     <Button
                       size="sm"
@@ -136,7 +139,7 @@ export function PatientDoctors() {
                       disabled={cooldown.active}
                       onClick={() => request(d.id, d.name)}
                     >
-                      Ask to follow me
+                      {D.ask}
                     </Button>
                   )}
                 </li>

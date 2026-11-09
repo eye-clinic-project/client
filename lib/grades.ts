@@ -1,22 +1,5 @@
 import type { DrLevel } from "@/lib/api-types"
 
-export const GRADE_LABELS: Record<DrLevel, string> = {
-  0: "No DR",
-  1: "Mild",
-  2: "Moderate",
-  3: "Severe",
-  4: "Proliferative",
-}
-
-/** Plain-language explanation for patients (matches the server's wording). */
-export const GRADE_DESCRIPTIONS: Record<DrLevel, string> = {
-  0: "No signs of diabetic retinopathy were detected.",
-  1: "Early, small changes in the retinal blood vessels. Usually monitored with regular check-ups.",
-  2: "More blood vessels are affected. Referral to an eye specialist is recommended.",
-  3: "Many blood vessels are blocked. Prompt specialist assessment is needed.",
-  4: "Advanced stage with new abnormal blood vessels. Urgent specialist treatment is needed.",
-}
-
 /** Chip colours per grade (text on tint), from the design. Classes include dark-mode variants. */
 export const GRADE_CHIP: Record<DrLevel, string> = {
   0: "bg-[#E7F5EC] text-[#166534] dark:bg-[#123322] dark:text-[#8fe0aa]",

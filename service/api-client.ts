@@ -8,6 +8,7 @@ import {
   setStoredTokens,
 } from "@/lib/api-config"
 import type { ApiResponse, AuthTokens } from "@/lib/api-types"
+import { getLocale, messages } from "@/lib/i18n"
 
 export class ApiError extends Error {
   statusCode: number
@@ -38,25 +39,27 @@ export class RateLimitError extends ApiError {
   }
 }
 
+/** "47 seconds", "5 minutes", "2 hours" in the current UI language. */
 export function formatWait(seconds: number): string {
-  if (seconds < 60) return `${seconds} second${seconds === 1 ? "" : "s"}`
+  const time = messages().time
+  if (seconds < 60) return time.seconds(seconds)
   const minutes = Math.ceil(seconds / 60)
-  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"}`
-  const hours = Math.ceil(minutes / 60)
-  return `${hours} hour${hours === 1 ? "" : "s"}`
+  if (minutes < 60) return time.minutes(minutes)
+  return time.hours(Math.ceil(minutes / 60))
 }
 
 function rateLimitMessage(retryAfter: number | null): string {
-  return retryAfter
-    ? `Too many attempts. Please try again in ${formatWait(retryAfter)}.`
-    : "Too many attempts. Please wait a moment and try again."
+  return messages().errors.rateLimited(retryAfter ? formatWait(retryAfter) : null)
 }
 
 /** A user-facing message for any error thrown by the API layer. */
-export function errorMessage(error: unknown, fallback = "Something went wrong. Please try again."): string {
-  if (error instanceof ApiError) return error.message || fallback
+export function errorMessage(error: unknown, fallback?: string): string {
+  const fb = fallback ?? messages().errors.generic
+  // Rate-limit text is rebuilt so it follows a language switch made after the error.
+  if (error instanceof RateLimitError) return rateLimitMessage(error.retryAfter)
+  if (error instanceof ApiError) return error.message || fb
   if (error instanceof Error && error.message) return error.message
-  return fallback
+  return fb
 }
 
 /** Called when the session can no longer be refreshed (SessionProvider redirects to /login). */
@@ -127,6 +130,8 @@ async function send(url: string, options: RequestOptions, token: string | null):
     headers.set("Content-Type", "application/json")
   }
   if (token && !headers.has("Authorization")) headers.set("Authorization", `Bearer ${token}`)
+  // The server translates its messages (validation, errors) to this language.
+  if (!headers.has("x-lang")) headers.set("x-lang", getLocale())
   try {
     return await fetch(url, {
       ...init,
@@ -134,7 +139,7 @@ async function send(url: string, options: RequestOptions, token: string | null):
       body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
     })
   } catch {
-    throw new ApiError("Cannot reach the server. Check your connection and try again.", 0)
+    throw new ApiError(messages().errors.network, 0)
   }
 }
 
@@ -154,7 +159,7 @@ async function toError(response: Response): Promise<ApiError> {
     ? raw.join(" ")
     : typeof raw === "string"
       ? raw
-      : response.statusText || "Request failed"
+      : response.statusText || messages().errors.requestFailed
   return new ApiError(message, response.status, body?.code, body)
 }
 

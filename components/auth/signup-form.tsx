@@ -6,6 +6,9 @@ import { useState, type FormEvent } from "react"
 
 import { Alert, Button, Checkbox, ChoiceCard, Field, Input, Logo, RateLimitNotice } from "@/components/rc/ui"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { useI18n } from "@/components/i18n-provider"
+import { LanguageSwitcher } from "@/components/language-switcher"
+import type { Messages } from "@/lib/i18n"
 import { useCooldown } from "@/hooks/use-api"
 import { errorMessage, RateLimitError } from "@/service/api-client"
 import { authService } from "@/service/auth.service"
@@ -25,23 +28,24 @@ type Values = {
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-function validate(v: Values) {
+function validate(v: Values, t: Messages) {
   const errors: Partial<Record<keyof Values, string>> = {}
-  if (!v.name.trim()) errors.name = "Full name is required."
-  if (!EMAIL.test(v.email.trim())) errors.email = "Enter a valid email address."
-  if (v.password.length < 8) errors.password = "Password must be at least 8 characters."
-  if (!v.city.trim()) errors.city = "City is required."
+  if (!v.name.trim()) errors.name = t.errors.nameRequired
+  if (!EMAIL.test(v.email.trim())) errors.email = t.errors.validEmail
+  if (v.password.length < 8) errors.password = t.errors.passwordMin
+  if (!v.city.trim()) errors.city = t.errors.cityRequired
   if (v.role === "doctor") {
-    if (!v.clinicName.trim()) errors.clinicName = "Clinic name is required."
-    if (!v.clinicAddress.trim()) errors.clinicAddress = "Clinic address is required."
+    if (!v.clinicName.trim()) errors.clinicName = t.auth.clinicNameRequired
+    if (!v.clinicAddress.trim()) errors.clinicAddress = t.auth.clinicAddressRequired
   }
-  if (!v.acceptTerms) errors.acceptTerms = "Please accept the privacy policy to continue."
+  if (!v.acceptTerms) errors.acceptTerms = t.auth.consentRequired
   return errors
 }
 
 export function SignupForm() {
   const router = useRouter()
   const cooldown = useCooldown()
+  const { t } = useI18n()
   const [values, setValues] = useState<Values>({
     role: "patient",
     name: "",
@@ -67,7 +71,7 @@ export function SignupForm() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
-    const found = validate(values)
+    const found = validate(values, t)
     setErrors(found)
     if (Object.keys(found).length) return
     setBusy(true)
@@ -102,13 +106,14 @@ export function SignupForm() {
     <div className="px-4 pt-10 pb-16 sm:px-6">
       <header className="mx-auto mb-8 flex max-w-[1040px] flex-wrap items-center justify-between gap-4">
         <Logo size={30} />
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3">
           <p className="text-[15px] text-muted-foreground">
-            Already have an account?{" "}
+            {t.auth.haveAccount}{" "}
             <Link href="/login" className="font-semibold text-primary hover:underline">
-              Log in
+              {t.auth.loginTitle}
             </Link>
           </p>
+          <LanguageSwitcher />
           <ThemeToggle />
         </div>
       </header>
@@ -119,46 +124,46 @@ export function SignupForm() {
         className="mx-auto flex max-w-[1040px] flex-col gap-8 rounded-2xl border bg-card p-6 sm:p-10"
       >
         <div className="flex flex-col gap-2">
-          <h1 className="font-heading text-[32px] font-semibold tracking-tight">Create your account</h1>
-          <p className="text-[15px] text-muted-foreground">We will email you a 6-digit code to verify your address.</p>
+          <h1 className="font-heading text-[32px] font-semibold tracking-tight">{t.auth.signupTitle}</h1>
+          <p className="text-[15px] text-muted-foreground">{t.auth.signupSubtitle}</p>
         </div>
 
         {error && <Alert>{error}</Alert>}
         <RateLimitNotice remaining={cooldown.remaining} />
 
         <fieldset className="flex flex-col gap-3">
-          <legend className="mb-3 text-sm font-semibold">I am a…</legend>
+          <legend className="mb-3 text-sm font-semibold">{t.auth.iAmA}</legend>
           <div className="grid gap-4 sm:grid-cols-2">
             <ChoiceCard
               name="role"
               value="patient"
               checked={values.role === "patient"}
               onChange={() => set("role", "patient")}
-              title="Patient"
-              description="See your screening results, reports and book visits."
+              title={t.common.patient}
+              description={t.auth.patientRole}
             />
             <ChoiceCard
               name="role"
               value="doctor"
               checked={isDoctor}
               onChange={() => set("role", "doctor")}
-              title="Doctor"
-              description="Manage patients, analyse fundus images and send reports."
+              title={t.common.doctor}
+              description={t.auth.doctorRole}
             />
           </div>
         </fieldset>
 
         <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
-          <Field label="Full name" error={errors.name}>
+          <Field label={t.auth.fullName} error={errors.name}>
             {(p) => <Input {...p} autoComplete="name" {...text("name")} />}
           </Field>
-          <Field label="Email" error={errors.email}>
+          <Field label={t.auth.email} error={errors.email}>
             {(p) => <Input {...p} type="email" autoComplete="email" {...text("email")} />}
           </Field>
-          <Field label="Password" hint="At least 8 characters." error={errors.password}>
+          <Field label={t.auth.password} hint={t.auth.passwordHint} error={errors.password}>
             {(p) => <Input {...p} type="password" autoComplete="new-password" {...text("password")} />}
           </Field>
-          <Field label="City" error={errors.city}>
+          <Field label={t.auth.city} error={errors.city}>
             {(p) => <Input {...p} autoComplete="address-level2" {...text("city")} />}
           </Field>
         </div>
@@ -166,19 +171,19 @@ export function SignupForm() {
         {isDoctor && (
           <section className="flex flex-col gap-4 border-t pt-6">
             <h2 className="text-base font-semibold">
-              Clinic details <span className="font-normal text-muted-foreground">(doctors only)</span>
+              {t.auth.clinicDetails} <span className="font-normal text-muted-foreground">{t.auth.doctorsOnly}</span>
             </h2>
             <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
-              <Field label="Clinic name" error={errors.clinicName}>
+              <Field label={t.auth.clinicName} error={errors.clinicName}>
                 {(p) => <Input {...p} {...text("clinicName")} />}
               </Field>
-              <Field label="Clinic address" error={errors.clinicAddress}>
-                {(p) => <Input {...p} placeholder="Street, area, city" {...text("clinicAddress")} />}
+              <Field label={t.auth.clinicAddress} error={errors.clinicAddress}>
+                {(p) => <Input {...p} placeholder={t.auth.clinicAddressPlaceholder} {...text("clinicAddress")} />}
               </Field>
-              <Field label="Specialty" optional>
+              <Field label={t.auth.specialty} optional>
                 {(p) => <Input {...p} {...text("specialty")} />}
               </Field>
-              <Field label="License number" optional>
+              <Field label={t.auth.licenseNumber} optional>
                 {(p) => <Input {...p} {...text("licenseNumber")} />}
               </Field>
             </div>
@@ -187,17 +192,16 @@ export function SignupForm() {
 
         <div className="flex flex-col gap-1.5">
           <Checkbox checked={values.acceptTerms} onChange={(e) => set("acceptTerms", e.target.checked)}>
-            I agree to the privacy policy and consent to my medical images and results being processed to provide this
-            service. AI results are decision support and are confirmed by a doctor.
+            {t.auth.consent}
           </Checkbox>
           {errors.acceptTerms && (
-            <span className="pl-[30px] text-[13px] font-medium text-destructive">{errors.acceptTerms}</span>
+            <span className="ps-[30px] text-[13px] font-medium text-destructive">{errors.acceptTerms}</span>
           )}
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
           <Button type="submit" size="lg" loading={busy} disabled={cooldown.active}>
-            Create account
+            {t.auth.createAccountButton}
           </Button>
         </div>
       </form>

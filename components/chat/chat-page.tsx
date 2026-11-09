@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import { ArrowLeft, SendHorizontal } from "lucide-react"
 
 import { Alert, Avatar, ButtonLink, EmptyState, RateLimitNotice, Spinner, controlClass } from "@/components/rc/ui"
+import { useI18n } from "@/components/i18n-provider"
 import { useApi, useCooldown } from "@/hooks/use-api"
 import { useSession } from "@/hooks/use-session"
 import { errorMessage, RateLimitError } from "@/service/api-client"
@@ -20,6 +21,7 @@ export function ChatPage({ role }: { role: "doctor" | "patient" }) {
   const params = useSearchParams()
   const router = useRouter()
   const base = role === "doctor" ? "/doctor/messages" : "/patient/messages"
+  const { t } = useI18n()
   const selectedId = params.get("c")
   const withUser = params.get("with")
   const list = useApi(() => chatService.list(), [])
@@ -45,19 +47,16 @@ export function ChatPage({ role }: { role: "doctor" | "patient" }) {
   return (
     <div className="flex h-[calc(100svh-9rem)] min-h-[520px] overflow-hidden rounded-2xl border bg-card">
       <aside
-        aria-label="Conversations"
-        className={cn("flex w-full flex-col border-r md:w-[320px] md:shrink-0", selected && "hidden md:flex")}
+        aria-label={t.chat.conversations}
+        className={cn("flex w-full flex-col border-e md:w-[320px] md:shrink-0", selected && "hidden md:flex")}
       >
-        <h1 className="px-5 pt-5 pb-3 font-heading text-2xl font-semibold">Messages</h1>
+        <h1 className="px-5 pt-5 pb-3 font-heading text-2xl font-semibold">{t.chat.title}</h1>
         {startError && <Alert className="mx-4 mb-3">{startError}</Alert>}
         {list.error ? <Alert className="mx-4">{errorMessage(list.error)}</Alert> : null}
         <div className="flex-1 overflow-y-auto">
           {list.loading && !list.data && <Spinner />}
           {list.data && conversations.length === 0 && (
-            <EmptyState title="No conversations yet">
-              {role === "patient"
-                ? "You can message a doctor who follows you."
-                : "Open a patient's analysis and choose Message patient."}
+            <EmptyState title={t.chat.none}>{role === "patient" ? t.chat.nonePatient : t.chat.noneDoctor}
             </EmptyState>
           )}
           {conversations.map((c) => (
@@ -77,9 +76,9 @@ export function ChatPage({ role }: { role: "doctor" | "patient" }) {
                   <span className="shrink-0 text-xs text-muted-foreground">{fmtRelative(c.lastMessageAt)}</span>
                 </span>
                 <span className="flex items-center gap-2">
-                  <span className="truncate text-sm text-muted-foreground">{c.lastMessage?.message || "No messages yet"}</span>
+                  <span className="truncate text-sm text-muted-foreground">{c.lastMessage?.message || t.chat.noMessages}</span>
                   {c.unreadCount > 0 && (
-                    <span className="ml-auto flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground">
+                    <span className="ms-auto flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground">
                       {c.unreadCount}
                     </span>
                   )}
@@ -101,7 +100,7 @@ export function ChatPage({ role }: { role: "doctor" | "patient" }) {
         />
       ) : (
         <div className="hidden flex-1 items-center justify-center md:flex">
-          <EmptyState title="Choose a conversation" />
+          <EmptyState title={t.chat.choose} />
         </div>
       )}
     </div>
@@ -123,6 +122,7 @@ function Thread({
 }) {
   const { me } = useSession()
   const cooldown = useCooldown()
+  const { t } = useI18n()
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
   const [text, setText] = useState("")
@@ -191,23 +191,23 @@ function Thread({
     i === 0 || fmtDate(m.createdAt) !== fmtDate(messages[i - 1]!.createdAt) ? fmtDate(m.createdAt) : null,
   )
   return (
-    <section aria-label={`Conversation with ${title}`} className="flex min-w-0 flex-1 flex-col">
+    <section aria-label={t.chat.with(title)} className="flex min-w-0 flex-1 flex-col">
       <div className="flex items-center gap-3 border-b px-4 py-3 sm:px-6">
-        <Link href={backHref} aria-label="Back to conversations" className="flex size-10 items-center justify-center rounded-[9px] hover:bg-muted md:hidden">
-          <ArrowLeft className="size-5" />
+        <Link href={backHref} aria-label={t.chat.back} className="flex size-10 items-center justify-center rounded-[9px] hover:bg-muted md:hidden">
+          <ArrowLeft className="size-5 rtl:-scale-x-100" />
         </Link>
         <Avatar name={conversation.participant?.name ?? "?"} src={conversation.participant?.avatarUrl} size={40} />
         <span className="min-w-0 flex-1 truncate font-semibold">{title}</span>
         {role === "patient" && (
           <ButtonLink href="/patient/appointments" variant="outline" size="sm">
-            Book visit
+            {t.chat.bookVisit}
           </ButtonLink>
         )}
       </div>
       <ol className="flex flex-1 flex-col gap-3 overflow-y-auto px-4 py-5 sm:px-6">
         {loading && <Spinner />}
         {!loading && messages.length === 0 && (
-          <li className="m-auto text-sm text-muted-foreground">No messages yet. Say hello.</li>
+          <li className="m-auto text-sm text-muted-foreground">{t.chat.sayHello}</li>
         )}
         {messages.map((m, i) => {
           const mine = m.sender === me?.id
@@ -218,17 +218,18 @@ function Thread({
               {header && <span className="my-1 self-center text-xs font-medium text-muted-foreground">{header}</span>}
               <span className={cn("flex max-w-[78%] flex-col gap-1", mine ? "items-end self-end" : "items-start self-start")}>
                 <span
+                  dir="auto"
                   className={cn(
                     "rounded-2xl px-4 py-2.5 text-[15px] leading-relaxed whitespace-pre-line",
-                    mine ? "rounded-br-md bg-primary text-primary-foreground" : "rounded-bl-md bg-muted",
+                    mine ? "rounded-ee-md bg-primary text-primary-foreground" : "rounded-es-md bg-muted",
                     m.deletedAt && "italic opacity-70",
                   )}
                 >
-                  {m.deletedAt ? "Message deleted" : m.message}
+                  {m.deletedAt ? t.chat.deleted : m.message}
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {fmtTime(m.createdAt)}
-                  {read ? " · Read" : ""}
+                  {read ? ` · ${t.chat.read}` : ""}
                 </span>
               </span>
             </li>
@@ -242,29 +243,30 @@ function Thread({
         {conversation.canSend ? (
           <form onSubmit={send} className="flex gap-3">
             <label htmlFor="chat-message" className="sr-only">
-              Message
+              {t.chat.label}
             </label>
             <input
               id="chat-message"
+              dir="auto"
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="Write a message…"
+              placeholder={t.chat.placeholder}
               autoComplete="off"
               maxLength={4000}
               className={controlClass}
             />
             <button
               type="submit"
-              aria-label="Send message"
+              aria-label={t.chat.send}
               disabled={sending || !text.trim() || cooldown.active}
               className="flex size-12 shrink-0 items-center justify-center rounded-[10px] bg-primary text-primary-foreground hover:bg-primary-hover disabled:opacity-50"
             >
-              <SendHorizontal className="size-5" aria-hidden="true" />
+              <SendHorizontal className="size-5 rtl:-scale-x-100" aria-hidden="true" />
             </button>
           </form>
         ) : (
           <p className="text-sm text-muted-foreground">
-            You can read this conversation, but new messages need an active doctor–patient link.
+            {t.chat.readOnly}
           </p>
         )}
       </div>

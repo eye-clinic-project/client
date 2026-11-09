@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 
+import { useI18n } from "@/components/i18n-provider"
 import { assetUrl } from "@/lib/api-config"
 import { cn } from "@/lib/utils"
 
@@ -16,13 +17,14 @@ export function FundusImage({
   className?: string
 }) {
   const [failed, setFailed] = useState(false)
+  const { t } = useI18n()
   return (
     <div className={cn("flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-[#0B0605]", className)}>
       {src && !failed ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={assetUrl(src)} alt={alt} onError={() => setFailed(true)} className="size-full object-contain" />
       ) : (
-        <span className="px-6 text-center text-sm text-white/70">{failed ? "Image could not be loaded" : "No image"}</span>
+        <span className="px-6 text-center text-sm text-white/70">{failed ? t.analysis.imageFailed : t.analysis.noImage}</span>
       )}
     </div>
   )
@@ -41,6 +43,7 @@ export function GradCamOverlay({
   showSlider?: boolean
 }) {
   const [opacity, setOpacity] = useState(0.75)
+  const { t } = useI18n()
   return (
     <div className="flex w-full flex-col gap-2.5">
       <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-[#0B0605]">
@@ -58,10 +61,10 @@ export function GradCamOverlay({
           />
         )}
       </div>
-      {!gradCamSrc && <span className="text-[13px] text-muted-foreground">Heatmap not available for this result.</span>}
+      {!gradCamSrc && <span className="text-[13px] text-muted-foreground">{t.analysis.noHeatmap}</span>}
       {showSlider && gradCamSrc && (
         <label className="flex items-center gap-3 text-[13px] text-muted-foreground">
-          <span className="shrink-0">Heatmap</span>
+          <span className="shrink-0">{t.analysis.heatmap}</span>
           <input
             type="range"
             min={0}
@@ -70,16 +73,16 @@ export function GradCamOverlay({
             value={opacity}
             onChange={(e) => setOpacity(Number(e.target.value))}
             className="flex-1 accent-primary"
-            aria-label="Heatmap opacity"
+            aria-label={t.analysis.heatmapOpacity}
           />
           <span className="flex shrink-0 items-center gap-1.5">
-            low
+            {t.analysis.low}
             <span
               aria-hidden="true"
-              className="h-2 w-16 rounded-full"
+              className="h-2 w-16 rounded-full rtl:-scale-x-100"
               style={{ background: "linear-gradient(90deg,#1F3BFF,#E0001B,#FF7A00,#FFF200)" }}
             />
-            high influence
+            {t.analysis.high}
           </span>
         </label>
       )}

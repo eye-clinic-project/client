@@ -19,17 +19,20 @@ import {
   StatusChip,
   Textarea,
 } from "@/components/rc/ui"
+import { useI18n } from "@/components/i18n-provider"
 import { useApi, useCooldown } from "@/hooks/use-api"
 import { errorMessage, RateLimitError } from "@/service/api-client"
 import { analysisService, reviewService } from "@/service/analysis.service"
 import { reportService } from "@/service/report.service"
 import type { Analysis, DoctorReview, DrLevel } from "@/lib/api-types"
-import { GRADE_LABELS, GRADES, isLevel } from "@/lib/grades"
-import { EYE_LABELS, fmtBytes, fmtDateTime, fmtTime, userOf } from "@/lib/format"
+import { GRADES, isLevel } from "@/lib/grades"
+import { eyeLabel, fmtBytes, fmtDateTime, fmtTime, userOf } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 export function AnalysisResultPage({ id }: { id: string }) {
   const cooldown = useCooldown()
+  const { t } = useI18n()
+  const L = t.analysis
   const analysis = useApi(() => analysisService.getById(id), [id])
   const history = useApi(() => analysisService.history(id), [id])
   const [retrying, setRetrying] = useState(false)
@@ -55,7 +58,7 @@ export function AnalysisResultPage({ id }: { id: string }) {
 
   const patient = userOf(a.patient)
   const patientId = patient?.id ?? (typeof a.patient === "string" ? a.patient : "")
-  const eye = a.image.eye ? EYE_LABELS[a.image.eye] : "Fundus image"
+  const eye = a.image.eye ? eyeLabel(a.image.eye) : t.scan.image
 
   return (
     <>
@@ -63,9 +66,9 @@ export function AnalysisResultPage({ id }: { id: string }) {
         <div className="flex flex-col gap-1.5">
           <p className="text-sm text-muted-foreground">
             <Link href="/doctor/patients" className="text-primary hover:underline">
-              Patients
+              {t.nav.patients}
             </Link>{" "}
-            / {patient?.name ?? "Patient"} / Analysis
+            / {patient?.name ?? t.common.patient} / {L.crumb}
           </p>
           <h1 className="font-heading text-[28px] font-semibold tracking-tight sm:text-[32px]">
             {eye} · {fmtDateTime(a.createdAt)}
@@ -73,21 +76,21 @@ export function AnalysisResultPage({ id }: { id: string }) {
         </div>
         <div className="flex flex-wrap gap-3">
           <ButtonLink href={`/doctor/scan?patientId=${patientId}`} variant="outline">
-            New scan
+            {L.newScan}
           </ButtonLink>
           <ButtonLink href={`/doctor/messages?with=${patientId}`} variant="outline">
-            Message patient
+            {L.messagePatient}
           </ButtonLink>
         </div>
       </header>
 
       <div className="flex flex-wrap items-start gap-6">
-        <section aria-label="Images" className="flex min-w-0 flex-[999_1_560px] flex-col gap-5">
+        <section aria-label={L.images} className="flex min-w-0 flex-[999_1_560px] flex-col gap-5">
           <div className="grid gap-4 sm:grid-cols-2">
             <figure className="flex flex-col gap-2.5">
-              <FundusImage src={a.image.fileUrl} alt={`Fundus photograph, ${eye.toLowerCase()}`} />
+              <FundusImage src={a.image.fileUrl} alt={L.photoAlt(eye)} />
               <figcaption className="text-[13px] text-muted-foreground">
-                Original image
+                {L.original}
                 {a.image.mimeType ? ` · ${a.image.mimeType.replace("image/", "").toUpperCase()}` : ""}
                 {a.image.size ? ` · ${fmtBytes(a.image.size)}` : ""}
               </figcaption>
@@ -96,13 +99,13 @@ export function AnalysisResultPage({ id }: { id: string }) {
               <GradCamOverlay
                 imageSrc={a.image.fileUrl}
                 gradCamSrc={a.result?.gradCamUrl}
-                alt="Grad-CAM heatmap over the fundus image"
+                alt={L.overlayAlt}
               />
-              <figcaption className="text-[13px] text-muted-foreground">Grad-CAM overlay</figcaption>
+              <figcaption className="text-[13px] text-muted-foreground">{L.overlay}</figcaption>
             </figure>
           </div>
           <Card className="p-5">
-            <h2 className="mb-3 text-base font-semibold">History</h2>
+            <h2 className="mb-3 text-base font-semibold">{L.history}</h2>
             <ol className="flex flex-col gap-2 text-sm text-subtle-foreground">
               {(history.data ?? []).map((h, i) => (
                 <li key={i}>
@@ -111,7 +114,7 @@ export function AnalysisResultPage({ id }: { id: string }) {
               ))}
               {a.status === "completed" && a.processingMs !== null && (
                 <li className="text-muted-foreground">
-                  Model {a.result?.modelVersion ?? "—"} · {(a.processingMs / 1000).toFixed(1)} s
+                  {L.model(a.result?.modelVersion ?? "—", (a.processingMs / 1000).toFixed(1))}
                 </li>
               )}
             </ol>
@@ -127,24 +130,24 @@ export function AnalysisResultPage({ id }: { id: string }) {
           ) : (
             <Card className="flex flex-col gap-3 p-6">
               <div className="flex items-center justify-between">
-                <h2 className="text-base font-semibold">AI result</h2>
+                <h2 className="text-base font-semibold">{L.aiResult}</h2>
                 <StatusChip status={a.status} />
               </div>
               <p className="text-sm text-subtle-foreground">
                 {a.status === "failed"
-                  ? (a.error ?? "The AI service is not available.")
-                  : "The analysis is still running. Refresh in a moment."}
+                  ? (a.error ?? t.scan.aiUnavailable)
+                  : L.stillRunning}
               </p>
               {retryError && <Alert>{retryError}</Alert>}
               <RateLimitNotice remaining={cooldown.remaining} />
               {a.status === "failed" && (
                 <Button onClick={retry} loading={retrying} disabled={cooldown.active} className="self-start">
-                  Retry analysis
+                  {t.scan.retryAnalysis}
                 </Button>
               )}
               {a.status !== "failed" && (
                 <Button variant="outline" onClick={() => void analysis.reload()} className="self-start">
-                  Refresh
+                  {t.common.refresh}
                 </Button>
               )}
             </Card>
@@ -156,12 +159,13 @@ export function AnalysisResultPage({ id }: { id: string }) {
 }
 
 function ReviewForm({ analysis }: { analysis: Analysis }) {
+  const { t } = useI18n()
   const reviews = useApi(() => reviewService.list({ analysisId: analysis.id }), [analysis.id])
   const reports = useApi(
     () => reportService.list({ patientId: typeof analysis.patient === "string" ? analysis.patient : analysis.patient.id, size: 50 }),
     [analysis.id],
   )
-  if (reviews.loading && !reviews.data) return <Spinner label="Loading your review" />
+  if (reviews.loading && !reviews.data) return <Spinner label={t.analysis.loadingReview} />
   const existing = reviews.data?.items[0] ?? null
   return (
     <ReviewFields
@@ -184,6 +188,8 @@ function ReviewFields({
 }) {
   const router = useRouter()
   const cooldown = useCooldown()
+  const { t } = useI18n()
+  const L = t.analysis
   const aiLevel = analysis.result!.predictedLevel as DrLevel
   const [review, setReview] = useState<DoctorReview | null>(initial)
   const [agree, setAgree] = useState(initial?.aiResultConfirmed ?? true)
@@ -241,17 +247,17 @@ function ReviewFields({
   }
 
   return (
-    <form onSubmit={onSubmit} aria-label="Doctor review" className="flex flex-col gap-4 rounded-2xl border bg-card p-6">
-      <h2 className="text-base font-semibold">Your review</h2>
+    <form onSubmit={onSubmit} aria-label={L.reviewLabel} className="flex flex-col gap-4 rounded-2xl border bg-card p-6">
+      <h2 className="text-base font-semibold">{L.review}</h2>
       {error && <Alert>{error}</Alert>}
-      {saved && <Alert tone="success">Review saved.</Alert>}
+      {saved && <Alert tone="success">{L.reviewSaved}</Alert>}
       <RateLimitNotice remaining={cooldown.remaining} />
       <fieldset className="flex flex-col gap-2">
-        <legend className="mb-2 text-sm font-semibold">Do you agree with the AI grade?</legend>
+        <legend className="mb-2 text-sm font-semibold">{L.agreeQuestion}</legend>
         <div className="grid grid-cols-2 gap-2">
           {[
-            [true, "Agree"],
-            [false, "Change grade"],
+            [true, L.agree],
+            [false, L.changeGrade],
           ].map(([value, label]) => (
             <label
               key={String(value)}
@@ -275,24 +281,24 @@ function ReviewFields({
           ))}
         </div>
       </fieldset>
-      <Field label="Confirmed grade">
+      <Field label={L.confirmedGrade}>
         {(p) => (
           <Select {...p} value={agree ? aiLevel : level} disabled={agree} onChange={(e) => setLevel(Number(e.target.value) as DrLevel)}>
             {GRADES.map((g) => (
               <option key={g} value={g}>
-                {g} · {GRADE_LABELS[g]}
+                {g} · {t.grades.short[g]}
               </option>
             ))}
           </Select>
         )}
       </Field>
-      <Field label="Notes">
+      <Field label={L.notes}>
         {(p) => <Textarea {...p} rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />}
       </Field>
-      <Field label="Recommendations">
+      <Field label={L.recommendations}>
         {(p) => <Textarea {...p} rows={2} value={recommendations} onChange={(e) => setRecommendations(e.target.value)} />}
       </Field>
-      <Field label="Follow-up date" optional>
+      <Field label={L.followUp} optional>
         {(p) => (
           <Input
             {...p}
@@ -305,15 +311,15 @@ function ReviewFields({
       </Field>
       <div className="flex flex-wrap gap-3">
         <Button type="submit" loading={saving} disabled={cooldown.active}>
-          Save review
+          {L.saveReview}
         </Button>
         {reportId ? (
           <ButtonLink href={`/doctor/reports/${reportId}`} variant="outline">
-            Open report
+            {L.openReport}
           </ButtonLink>
         ) : (
           <Button variant="outline" onClick={generate} loading={generating} disabled={cooldown.active}>
-            Generate report
+            {L.generateReport}
           </Button>
         )}
       </div>

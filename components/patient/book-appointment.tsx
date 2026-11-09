@@ -18,13 +18,14 @@ import {
   Spinner,
   StatusChip,
 } from "@/components/rc/ui"
+import { useI18n } from "@/components/i18n-provider"
 import { useApi, useCooldown } from "@/hooks/use-api"
 import { useSession } from "@/hooks/use-session"
 import { ApiError, errorMessage, RateLimitError } from "@/service/api-client"
 import { appointmentService, availabilityService } from "@/service/appointment.service"
 import { patientService } from "@/service/patient.service"
 import type { Appointment, Slot } from "@/lib/api-types"
-import { doctorName, fmtDate, fmtTime, userOf } from "@/lib/format"
+import { doctorName, fmtDate, fmtDayMonth, fmtTime, fmtWeekday, userOf } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 const DAYS_AHEAD = 14
@@ -38,6 +39,8 @@ function startOfDay(d: Date) {
 export function BookAppointment() {
   const { me } = useSession()
   const cooldown = useCooldown()
+  const { t } = useI18n()
+  const B = t.booking
   const doctors = useApi(me ? () => patientService.doctors(me.id) : null, [me?.id])
   const active = (doctors.data ?? []).filter((d) => d.status === "active")
   const [doctorId, setDoctorId] = useState("")
@@ -93,17 +96,11 @@ export function BookAppointment() {
     try {
       if (rescheduling) {
         await appointmentService.reschedule(rescheduling.id, slot.id)
-        setBooked({
-          title: "Appointment moved.",
-          text: `New time: ${fmtDate(slot.startAt)} at ${fmtTime(slot.startAt)}. ${doctorName(doctor?.name)} will confirm it.`,
-        })
+        setBooked({ title: B.movedTitle, text: B.moved(fmtDate(slot.startAt), fmtTime(slot.startAt), doctorName(doctor?.name)) })
         setRescheduling(null)
       } else {
         await appointmentService.book({ slotId: slot.id, reason: reason.trim() || undefined })
-        setBooked({
-          title: "Appointment requested.",
-          text: `${fmtDate(slot.startAt)} at ${fmtTime(slot.startAt)}. ${doctorName(doctor?.name)} will confirm it and you will get a notification.`,
-        })
+        setBooked({ title: B.requestedTitle, text: B.requested(fmtDate(slot.startAt), fmtTime(slot.startAt), doctorName(doctor?.name)) })
       }
       setSlotId(null)
       void slots.reload()
@@ -111,7 +108,7 @@ export function BookAppointment() {
     } catch (err) {
       cooldown.trip(err)
       if (err instanceof ApiError && err.statusCode === 409) {
-        setError("This time slot is no longer available. Please choose another one.")
+        setError(B.taken)
         setSlotId(null)
         void slots.reload()
       } else if (!(err instanceof RateLimitError)) setError(errorMessage(err))
@@ -125,12 +122,12 @@ export function BookAppointment() {
   if (!active.length) {
     return (
       <>
-        <PageTitle>Book an appointment</PageTitle>
+        <PageTitle>{B.title}</PageTitle>
         <Card>
-          <EmptyState title="You need a doctor first">
-            Ask a doctor to follow you, then you can book their open times.{" "}
+          <EmptyState title={B.needDoctor}>
+            {B.needDoctorHint}{" "}
             <Link href="/patient/doctors" className="font-semibold text-primary hover:underline">
-              Find a doctor
+              {B.findDoctor}
             </Link>
           </EmptyState>
         </Card>
@@ -139,31 +136,31 @@ export function BookAppointment() {
     )
   }
 
-  const timeLabel = slot ? `${fmtTime(slot.startAt)} – ${fmtTime(slot.endAt)}` : "Choose a time"
-  const dayLabel = day ? day.date.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }) : "—"
+  const timeLabel = slot ? `${fmtTime(slot.startAt)} – ${fmtTime(slot.endAt)}` : B.chooseTime
+  const dayLabel = day ? fmtDayMonth(day.date) : "—"
   const duration = slot ? Math.round((+new Date(slot.endAt) - +new Date(slot.startAt)) / 60000) : null
 
   return (
     <>
-      <PageTitle>{rescheduling ? "Reschedule appointment" : "Book an appointment"}</PageTitle>
+      <PageTitle>{rescheduling ? B.rescheduleTitle : B.title}</PageTitle>
       {rescheduling && (
         <Alert
           tone="info"
           action={
             <Button size="sm" variant="outline" onClick={() => setRescheduling(null)}>
-              Stop
+              {B.stop}
             </Button>
           }
         >
-          Choose a new time for your visit on {fmtDate(rescheduling.scheduledAt)} at {fmtTime(rescheduling.scheduledAt)}.
+          {B.chooseNew(fmtDate(rescheduling.scheduledAt), fmtTime(rescheduling.scheduledAt))}
         </Alert>
       )}
       <div className="flex flex-wrap items-start gap-6">
         <section className="flex min-w-0 flex-[999_1_560px] flex-col gap-7 rounded-2xl border bg-card p-6 sm:p-8">
           <div className="flex flex-col gap-3">
-            <h2 className="text-base font-semibold">Doctor</h2>
+            <h2 className="text-base font-semibold">{B.doctor}</h2>
             {changing ? (
-              <Field label="Choose a doctor">
+              <Field label={B.chooseDoctor}>
                 {(p) => (
                   <Select
                     {...p}
@@ -194,7 +191,7 @@ export function BookAppointment() {
                 </span>
                 {active.length > 1 && (
                   <Button variant="outline" size="sm" onClick={() => setChanging(true)}>
-                    Change doctor
+                    {B.changeDoctor}
                   </Button>
                 )}
               </div>
@@ -202,15 +199,15 @@ export function BookAppointment() {
           </div>
 
           {slots.loading && !slots.data ? (
-            <Spinner label="Loading open times" />
+            <Spinner label={B.loadingTimes} />
           ) : days.length === 0 ? (
             <Alert tone="info">
-              {doctorName(doctor?.name)} has no open times in the next two weeks. Send them a message to ask for a visit.
+              {B.noTimes(doctorName(doctor?.name))}
             </Alert>
           ) : (
             <>
               <div className="flex flex-col gap-3">
-                <h2 className="text-base font-semibold">Day</h2>
+                <h2 className="text-base font-semibold">{B.day}</h2>
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(88px,1fr))] gap-2.5">
                   {days.map((d) => {
                     const on = d.key === dayKey
@@ -236,9 +233,9 @@ export function BookAppointment() {
                               : "border border-input bg-card hover:bg-muted",
                         )}
                       >
-                        <span className="text-[13px] font-medium">{d.date.toLocaleDateString("en-GB", { weekday: "short" })}</span>
+                        <span className="text-[13px] font-medium">{fmtWeekday(d.date)}</span>
                         <span className="font-heading text-xl font-semibold">{d.date.getDate()}</span>
-                        <span className="text-xs">{full ? "Full" : `${d.free} free`}</span>
+                        <span className="text-xs">{full ? B.full : B.free(d.free)}</span>
                       </button>
                     )
                   })}
@@ -246,7 +243,7 @@ export function BookAppointment() {
               </div>
 
               <div className="flex flex-col gap-3">
-                <h2 className="text-base font-semibold">Available times · {dayLabel}</h2>
+                <h2 className="text-base font-semibold">{B.times(dayLabel)}</h2>
                 <div className="grid grid-cols-[repeat(auto-fill,minmax(96px,1fr))] gap-2.5">
                   {day?.slots.map((s) => {
                     const on = s.id === slotId
@@ -258,7 +255,7 @@ export function BookAppointment() {
                         aria-disabled={s.isBooked}
                         onClick={() => {
                           setBooked(null)
-                          if (s.isBooked) setError("This time slot is no longer available. Please choose another one.")
+                          if (s.isBooked) setError(B.taken)
                           else {
                             setSlotId(s.id)
                             setError(null)
@@ -274,7 +271,7 @@ export function BookAppointment() {
                         )}
                       >
                         {fmtTime(s.startAt)}
-                        {s.isBooked && <span className="text-[11px] font-medium no-underline">Booked</span>}
+                        {s.isBooked && <span className="text-[11px] font-medium no-underline">{B.booked}</span>}
                       </button>
                     )
                   })}
@@ -283,13 +280,13 @@ export function BookAppointment() {
               </div>
 
               {!rescheduling && (
-                <Field label="Reason for visit" optional>
+                <Field label={B.reason} optional>
                   {(p) => (
                     <Input
                       {...p}
                       value={reason}
                       maxLength={500}
-                      placeholder="Follow-up after screening"
+                      placeholder={B.reasonPlaceholder}
                       onChange={(e) => setReason(e.target.value)}
                     />
                   )}
@@ -300,23 +297,23 @@ export function BookAppointment() {
         </section>
 
         <aside className="flex flex-[1_1_320px] flex-col gap-4 rounded-2xl border bg-card p-6 lg:sticky lg:top-6">
-          <h2 className="text-lg font-semibold">Summary</h2>
+          <h2 className="text-lg font-semibold">{B.summary}</h2>
           <dl className="flex flex-col gap-3 text-[15px]">
             {[
-              ["Doctor", doctorName(doctor?.name)],
-              ["Date", dayLabel],
-              ["Time", timeLabel],
-              ["Duration", duration ? `${duration} min` : "—"],
+              [B.doctor, doctorName(doctor?.name)],
+              [B.date, dayLabel],
+              [B.time, timeLabel],
+              [B.duration, duration ? B.minutes(duration) : "—"],
             ].map(([k, v]) => (
               <div key={k} className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">{k}</dt>
-                <dd className="text-right font-semibold">{v}</dd>
+                <dd className="text-end font-semibold">{v}</dd>
               </div>
             ))}
           </dl>
           <RateLimitNotice remaining={cooldown.remaining} />
           <Button size="lg" onClick={submit} loading={busy} disabled={!slot || cooldown.active}>
-            {rescheduling ? "Move appointment" : "Request appointment"}
+            {rescheduling ? B.move : B.request}
           </Button>
           {booked && (
             <Alert tone="success">
@@ -324,7 +321,7 @@ export function BookAppointment() {
             </Alert>
           )}
           <p className="text-[13px] leading-snug text-muted-foreground">
-            You can reschedule or cancel from your appointments. Your doctor is notified of any change.
+            {B.footer}
           </p>
         </aside>
       </div>
@@ -360,12 +357,14 @@ function MyAppointments({
   onReschedule: (a: Appointment) => void
 }) {
   const [error, setError] = useState<string | null>(null)
+  const { t } = useI18n()
+  const B = t.booking
   const rows = list
     .filter((a) => a.status === "pending" || a.status === "confirmed")
     .sort((a, b) => +new Date(a.scheduledAt) - +new Date(b.scheduledAt))
 
   async function cancel(a: Appointment) {
-    if (!window.confirm(`Cancel your appointment on ${fmtDate(a.scheduledAt)} at ${fmtTime(a.scheduledAt)}?`)) return
+    if (!window.confirm(B.cancelAsk(fmtDate(a.scheduledAt), fmtTime(a.scheduledAt)))) return
     setError(null)
     try {
       await appointmentService.cancel(a.id)
@@ -377,12 +376,12 @@ function MyAppointments({
 
   return (
     <Card className="overflow-hidden">
-      <CardHeader title="My upcoming appointments" />
+      <CardHeader title={B.mine} />
       {error && <Alert className="m-4">{error}</Alert>}
       {loading && !list.length ? (
         <Spinner />
       ) : rows.length === 0 ? (
-        <EmptyState title="No upcoming appointments" />
+        <EmptyState title={B.none} />
       ) : (
         <ul>
           {rows.map((a) => (
@@ -396,13 +395,13 @@ function MyAppointments({
                   {a.reason ? ` · ${a.reason}` : ""}
                 </span>
               </span>
-              <StatusChip status={a.status} label={a.status === "pending" ? "Waiting for doctor" : "Confirmed"} />
+              <StatusChip status={a.status} label={a.status === "pending" ? B.waitingDoctor : B.confirmed} />
               <span className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => onReschedule(a)}>
-                  Reschedule
+                  {B.reschedule}
                 </Button>
                 <Button size="sm" variant="danger" onClick={() => cancel(a)}>
-                  Cancel
+                  {t.common.cancel}
                 </Button>
               </span>
             </li>

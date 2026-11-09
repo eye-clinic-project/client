@@ -3,36 +3,32 @@
 import Link from "next/link"
 import { Plus } from "lucide-react"
 
+import { useI18n } from "@/components/i18n-provider"
 import { NotificationBell } from "@/components/shell/notification-bell"
 import { Alert, ButtonLink, Card, CardHeader, EmptyState, GradeChip, PageTitle, Spinner, StatusChip } from "@/components/rc/ui"
 import { useApi } from "@/hooks/use-api"
 import { useSession } from "@/hooks/use-session"
 import { errorMessage } from "@/service/api-client"
 import { doctorService } from "@/service/doctor.service"
-import { EYE_LABELS, firstName, fmtLongDay, fmtRelative, fmtTime, pct, userOf } from "@/lib/format"
-
-function greeting() {
-  const h = new Date().getHours()
-  return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening"
-}
+import { eyeShort, firstName, fmtLongDay, fmtRelative, fmtTime, greeting, pct, userOf } from "@/lib/format"
 
 export function DoctorDashboard() {
   const { me } = useSession()
+  const { t } = useI18n()
+  const d = t.dashboard
   const { data, error, loading } = useApi(() => doctorService.dashboard(), [])
 
   return (
     <>
       <header className="flex flex-wrap items-end justify-between gap-4">
-        <PageTitle eyebrow={fmtLongDay()}>
-          {greeting()}, Dr. {firstName(me?.name)}
-        </PageTitle>
+        <PageTitle eyebrow={fmtLongDay()}>{d.greeting(greeting(), firstName(me?.name))}</PageTitle>
         <div className="flex flex-wrap gap-3">
           <NotificationBell size={48} />
           <ButtonLink href="/doctor/patients?add=1" variant="outline">
-            Add patient
+            {d.addPatient}
           </ButtonLink>
           <ButtonLink href="/doctor/scan">
-            <Plus className="size-[18px]" aria-hidden="true" /> New scan
+            <Plus className="size-[18px]" aria-hidden="true" /> {d.newScan}
           </ButtonLink>
         </div>
       </header>
@@ -42,29 +38,33 @@ export function DoctorDashboard() {
 
       {data && (
         <>
-          <section aria-label="Summary" className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <Stat label="Active patients" value={data.patients}>
+          <section aria-label={d.summary} className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <Stat label={d.activePatients} value={data.patients}>
               {data.pendingPatientRequests > 0 ? (
                 <Link href="/doctor/patients?tab=requests" className="font-medium text-primary hover:underline">
-                  {data.pendingPatientRequests} request{data.pendingPatientRequests === 1 ? "" : "s"} waiting
+                  {d.requestsWaiting(data.pendingPatientRequests)}
                 </Link>
               ) : (
-                "No requests waiting"
+                d.noRequests
               )}
             </Stat>
-            <Stat label="Referable cases" value={data.referableCases} tone="text-[#9A3A06] dark:text-[#ffb98a]">
-              Moderate and above
+            <Stat label={d.referable} value={data.referableCases} tone="text-[#9A3A06] dark:text-[#ffb98a]">
+              {d.moderatePlus}
             </Stat>
-            <Stat label="Draft reports" value={data.draftReports}>
-              Not sent to patients
+            <Stat label={d.draftReports} value={data.draftReports}>
+              {d.notSent}
             </Stat>
-            <Stat label="Failed analyses" value={data.failedAnalyses} tone={data.failedAnalyses ? "text-[#A11B1B] dark:text-[#ffaaaa]" : undefined}>
+            <Stat
+              label={d.failedAnalyses}
+              value={data.failedAnalyses}
+              tone={data.failedAnalyses ? "text-[#A11B1B] dark:text-[#ffaaaa]" : undefined}
+            >
               {data.failedAnalyses ? (
                 <Link href="/doctor/scan?failed=1" className="font-semibold text-primary hover:underline">
-                  Retry now
+                  {d.retryNow}
                 </Link>
               ) : (
-                "All analyses ran"
+                d.allRan
               )}
             </Stat>
           </section>
@@ -72,26 +72,26 @@ export function DoctorDashboard() {
           <div className="flex flex-wrap items-start gap-5">
             <Card className="min-w-0 flex-[999_1_520px] overflow-hidden rounded-[14px]">
               <CardHeader
-                title="Recent analyses"
+                title={d.recent}
                 action={
                   <Link href="/doctor/patients" className="text-sm font-semibold text-primary hover:underline">
-                    View all
+                    {t.common.viewAll}
                   </Link>
                 }
               />
               {data.recentAnalyses.length === 0 ? (
-                <EmptyState title="No analyses yet">Upload a fundus image to run your first analysis.</EmptyState>
+                <EmptyState title={d.noAnalyses}>{d.noAnalysesHint}</EmptyState>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[560px] border-collapse text-sm">
                     <thead>
-                      <tr className="text-left text-[13px] text-muted-foreground">
-                        <th className="px-5 py-3 font-semibold">Patient</th>
-                        <th className="px-2 py-3 font-semibold">Eye</th>
-                        <th className="px-2 py-3 font-semibold">AI grade</th>
-                        <th className="px-2 py-3 font-semibold">Confidence</th>
+                      <tr className="text-start text-[13px] whitespace-nowrap text-muted-foreground">
+                        <th className="px-5 py-3 text-start font-semibold">{d.colPatient}</th>
+                        <th className="px-2 py-3 text-start font-semibold">{d.colEye}</th>
+                        <th className="px-2 py-3 text-start font-semibold">{d.colGrade}</th>
+                        <th className="px-2 py-3 text-start font-semibold">{d.colConfidence}</th>
                         <th className="px-5 py-3">
-                          <span className="sr-only">Action</span>
+                          <span className="sr-only">{d.colAction}</span>
                         </th>
                       </tr>
                     </thead>
@@ -102,13 +102,11 @@ export function DoctorDashboard() {
                           <tr key={a.id} className="border-t border-muted">
                             <td className="px-5 py-3.5">
                               <span className="flex flex-col gap-0.5">
-                                <span className="font-semibold">{patient?.name ?? "Patient"}</span>
+                                <span className="font-semibold">{patient?.name ?? t.common.patient}</span>
                                 <span className="text-[13px] text-muted-foreground">{fmtRelative(a.createdAt)}</span>
                               </span>
                             </td>
-                            <td className="px-2 py-3.5 text-subtle-foreground">
-                              {a.image.eye ? EYE_LABELS[a.image.eye].replace(" eye", "") : "—"}
-                            </td>
+                            <td className="px-2 py-3.5 text-subtle-foreground">{a.image.eye ? eyeShort(a.image.eye) : "—"}</td>
                             <td className="px-2 py-3.5">
                               {a.status === "completed" ? (
                                 <GradeChip level={a.result?.predictedLevel} />
@@ -116,10 +114,12 @@ export function DoctorDashboard() {
                                 <StatusChip status={a.status} />
                               )}
                             </td>
-                            <td className="px-2 py-3.5 text-subtle-foreground">{pct(a.result?.confidence)}</td>
-                            <td className="px-5 py-3.5 text-right">
+                            <td className="px-2 py-3.5 text-subtle-foreground" dir="ltr">
+                              {pct(a.result?.confidence)}
+                            </td>
+                            <td className="px-5 py-3.5 text-end">
                               <Link href={`/doctor/analyses/${a.id}`} className="font-semibold text-primary hover:underline">
-                                Open
+                                {t.common.open}
                               </Link>
                             </td>
                           </tr>
@@ -133,30 +133,27 @@ export function DoctorDashboard() {
 
             <Card className="flex flex-[1_1_320px] flex-col gap-4 rounded-[14px] p-5">
               <div className="flex items-center justify-between">
-                <h2 className="text-[17px] font-semibold">Today</h2>
+                <h2 className="text-[17px] font-semibold">{d.today}</h2>
                 <Link href="/doctor/appointments" className="text-sm font-semibold text-primary hover:underline">
-                  Calendar
+                  {d.calendar}
                 </Link>
               </div>
-              {data.todayAppointments.length === 0 && (
-                <p className="text-sm text-muted-foreground">No appointments today.</p>
-              )}
+              {data.todayAppointments.length === 0 && <p className="text-sm text-muted-foreground">{d.noToday}</p>}
               {data.todayAppointments.map((a) => (
                 <div key={a.id} className="flex items-center gap-3.5">
                   <span className="w-16 shrink-0 font-heading text-base font-semibold">{fmtTime(a.scheduledAt)}</span>
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="truncate text-[15px] font-semibold">{a.patient?.name}</span>
-                    <span className="truncate text-[13px] text-muted-foreground">{a.reason || "Appointment"}</span>
+                    <span className="truncate text-[13px] text-muted-foreground">{a.reason || d.appointment}</span>
                   </span>
                   <StatusChip status={a.status} />
                 </div>
               ))}
               {data.pendingPatientRequests > 0 && (
                 <div className="mt-1 rounded-[10px] bg-warning-bg p-3.5 text-sm leading-snug text-warning-fg">
-                  {data.pendingPatientRequests} patient{data.pendingPatientRequests === 1 ? "" : "s"} asked to be followed
-                  by you.{" "}
+                  {d.askedToFollow(data.pendingPatientRequests)}{" "}
                   <Link href="/doctor/patients?tab=requests" className="font-semibold underline">
-                    Review requests
+                    {d.reviewRequests}
                   </Link>
                 </div>
               )}
@@ -168,17 +165,7 @@ export function DoctorDashboard() {
   )
 }
 
-function Stat({
-  label,
-  value,
-  tone,
-  children,
-}: {
-  label: string
-  value: number
-  tone?: string
-  children: React.ReactNode
-}) {
+function Stat({ label, value, tone, children }: { label: string; value: number; tone?: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-2 rounded-[14px] border bg-card p-5">
       <span className="text-sm text-muted-foreground">{label}</span>

@@ -21,11 +21,12 @@ import {
   Spinner,
   controlClass,
 } from "@/components/rc/ui"
+import { useI18n } from "@/components/i18n-provider"
 import { useApi, useCooldown } from "@/hooks/use-api"
 import { errorMessage, RateLimitError } from "@/service/api-client"
 import { assignmentService, patientService } from "@/service/patient.service"
 import type { DiabetesType, Gender, PatientListItem } from "@/lib/api-types"
-import { ageFrom, DIABETES_LABELS, fmtDate, fmtRelative, userOf } from "@/lib/format"
+import { ageFrom, diabetesLabel, fmtDate, fmtRelative, userOf } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 const PAGE_SIZE = 8
@@ -43,6 +44,8 @@ export function PatientsPage() {
   const params = useSearchParams()
   const router = useRouter()
   const tab = params.get("tab") === "requests" ? "requests" : "assigned"
+  const { t } = useI18n()
+  const p = t.patients
   const [search, setSearch] = useState("")
   const [term, setTerm] = useState("")
   const [page, setPage] = useState(1)
@@ -72,11 +75,11 @@ export function PatientsPage() {
     <div className="flex flex-wrap items-start gap-6">
       <div className="flex min-w-0 flex-[999_1_640px] flex-col gap-5">
         <header className="flex flex-wrap items-center justify-between gap-4">
-          <PageTitle>Patients</PageTitle>
-          <div role="tablist" aria-label="Patient lists" className="flex gap-1 rounded-xl bg-muted p-1">
+          <PageTitle>{p.title}</PageTitle>
+          <div role="tablist" aria-label={p.lists} className="flex gap-1 rounded-xl bg-muted p-1">
             {[
-              ["assigned", `Assigned · ${list.data?.total ?? "…"}`],
-              ["requests", `Requests · ${requestCount}`],
+              ["assigned", p.assigned(list.data?.total ?? "…")],
+              ["requests", p.requests(requestCount)],
             ].map(([key, label]) => (
               <button
                 key={key}
@@ -99,21 +102,21 @@ export function PatientsPage() {
           <>
             <div className="flex flex-wrap gap-3">
               <label htmlFor="patient-search" className="sr-only">
-                Search patients
+                {p.search}
               </label>
               <div className="relative min-w-[240px] flex-[1_1_320px]">
-                <Search className="absolute top-1/2 left-3.5 size-[18px] -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                <Search className="absolute top-1/2 start-3.5 size-[18px] -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                 <input
                   id="patient-search"
                   type="search"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search by name, email or patient ID (P-XXXXXX)"
-                  className={cn(controlClass, "pl-10")}
+                  placeholder={p.searchPlaceholder}
+                  className={cn(controlClass, "ps-10")}
                 />
               </div>
               <label htmlFor="grade-filter" className="sr-only">
-                Filter by grade
+                {p.filter}
               </label>
               <Select
                 id="grade-filter"
@@ -121,10 +124,10 @@ export function PatientsPage() {
                 onChange={(e) => setGrade(e.target.value as GradeFilter)}
                 className="w-auto min-w-[200px]"
               >
-                <option value="all">All grades</option>
-                <option value="referable">Referable (Moderate+)</option>
-                <option value="nodr">No DR</option>
-                <option value="none">No scan yet</option>
+                <option value="all">{p.allGrades}</option>
+                <option value="referable">{p.referable}</option>
+                <option value="nodr">{p.noDr}</option>
+                <option value="none">{p.noScan}</option>
               </Select>
             </div>
 
@@ -133,69 +136,69 @@ export function PatientsPage() {
               {list.loading && !list.data ? (
                 <Spinner />
               ) : rows.length === 0 ? (
-                <EmptyState title={term ? "No patients found" : "No patients yet"}>
-                  {term ? "Try a name, email or patient ID." : "Add a patient to start screening."}
+                <EmptyState title={term ? p.notFound : p.none}>
+                  {term ? p.notFoundHint : p.noneHint}
                 </EmptyState>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[720px] border-collapse text-sm">
                     <thead>
-                      <tr className="text-left text-[13px] whitespace-nowrap text-muted-foreground">
-                        <th className="px-5 py-3 font-semibold">Patient</th>
-                        <th className="px-2 py-3 font-semibold">Patient ID</th>
-                        <th className="px-2 py-3 font-semibold">Age · sex</th>
-                        <th className="px-2 py-3 font-semibold">Diabetes</th>
-                        <th className="px-2 py-3 font-semibold">Latest grade</th>
-                        <th className="px-2 py-3 font-semibold">Last scan</th>
+                      <tr className="text-[13px] whitespace-nowrap text-muted-foreground [&>th]:text-start">
+                        <th className="px-5 py-3 font-semibold">{p.colPatient}</th>
+                        <th className="px-2 py-3 font-semibold">{p.colId}</th>
+                        <th className="px-2 py-3 font-semibold">{p.colAge}</th>
+                        <th className="px-2 py-3 font-semibold">{p.colDiabetes}</th>
+                        <th className="px-2 py-3 font-semibold">{p.colGrade}</th>
+                        <th className="px-2 py-3 font-semibold">{p.colLastScan}</th>
                         <th className="px-5 py-3">
-                          <span className="sr-only">Actions</span>
+                          <span className="sr-only">{p.colActions}</span>
                         </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {rows.map((p) => {
-                        const age = ageFrom(p.profile?.dateOfBirth)
-                        const sex = p.profile?.gender === "male" ? "M" : p.profile?.gender === "female" ? "F" : null
-                        const dm = p.profile?.diabetesType
+                      {rows.map((row) => {
+                        const age = ageFrom(row.profile?.dateOfBirth)
+                        const sex = row.profile?.gender === "male" ? t.sex.m : row.profile?.gender === "female" ? t.sex.f : null
+                        const dm = row.profile?.diabetesType
                         return (
-                          <tr key={p.id} className="border-t border-muted">
+                          <tr key={row.id} className="border-t border-muted">
                             <td className="px-5 py-3">
                               <span className="flex items-center gap-3">
-                                <Avatar name={p.name} src={p.avatarUrl} size={36} />
+                                <Avatar name={row.name} src={row.avatarUrl} size={36} />
                                 <span className="flex min-w-0 flex-col">
-                                  <span className="font-semibold">{p.name}</span>
-                                  <span className="truncate text-[13px] text-muted-foreground">{p.email}</span>
+                                  <span className="font-semibold">{row.name}</span>
+                                  <span className="truncate text-[13px] text-muted-foreground">{row.email}</span>
                                 </span>
                               </span>
                             </td>
-                            <td className="px-2 py-3 font-mono text-[13px] whitespace-nowrap text-subtle-foreground">
-                              {p.profile?.medicalRecordNumber ?? "—"}
+                            <td className="px-2 py-3 font-mono text-[13px] whitespace-nowrap text-subtle-foreground" dir="ltr">
+                              {row.profile?.medicalRecordNumber ?? "—"}
                             </td>
                             <td className="px-2 py-3 text-subtle-foreground">
                               {[age, sex].filter((v) => v !== null).join(" · ") || "—"}
                             </td>
                             <td className="px-2 py-3 text-subtle-foreground">
                               {dm
-                                ? `${DIABETES_LABELS[dm]}${p.profile?.diabetesSince ? ` · ${new Date().getFullYear() - p.profile.diabetesSince} y` : ""}`
+                                ? `${diabetesLabel(dm)}${row.profile?.diabetesSince ? ` · ${p.years(new Date().getFullYear() - row.profile.diabetesSince)}` : ""}`
                                 : "—"}
                             </td>
                             <td className="px-2 py-3">
-                              <GradeChip level={p.latestAnalysis?.predictedLevel} />
+                              <GradeChip level={row.latestAnalysis?.predictedLevel} />
                             </td>
-                            <td className="px-2 py-3 text-subtle-foreground">{fmtDate(p.latestAnalysis?.createdAt)}</td>
-                            <td className="px-5 py-3 text-right whitespace-nowrap">
+                            <td className="px-2 py-3 whitespace-nowrap text-subtle-foreground">{fmtDate(row.latestAnalysis?.createdAt)}</td>
+                            <td className="px-5 py-3 text-end whitespace-nowrap">
                               <Link
-                                href={`/doctor/scan?patientId=${p.id}`}
-                                className="mr-4 font-semibold text-primary hover:underline"
+                                href={`/doctor/scan?patientId=${row.id}`}
+                                className="me-4 font-semibold text-primary hover:underline"
                               >
-                                New scan
+                                {p.newScan}
                               </Link>
-                              {p.latestAnalysis ? (
+                              {row.latestAnalysis ? (
                                 <Link
-                                  href={`/doctor/analyses/${p.latestAnalysis.id}`}
+                                  href={`/doctor/analyses/${row.latestAnalysis.id}`}
                                   className="font-semibold text-primary hover:underline"
                                 >
-                                  View result
+                                  {p.viewResult}
                                 </Link>
                               ) : null}
                             </td>
@@ -209,20 +212,20 @@ export function PatientsPage() {
               {list.data && list.data.total > 0 && (
                 <div className="flex flex-wrap items-center justify-between gap-3 border-t px-5 py-3 text-sm text-muted-foreground">
                   <span>
-                    Showing {from}–{to} of {list.data.total}
-                    {grade !== "all" && " (filtered on this page)"}
+                    {p.showing(from, to, list.data.total)}
+                    {grade !== "all" && p.filtered}
                   </span>
                   <span className="flex gap-2">
-                    <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-                      Previous
+                    <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((n) => n - 1)}>
+                      {t.common.previous}
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       disabled={page >= list.data.pages}
-                      onClick={() => setPage((p) => p + 1)}
+                      onClick={() => setPage((n) => n + 1)}
                     >
-                      Next
+                      {t.common.next}
                     </Button>
                   </span>
                 </div>
@@ -260,6 +263,7 @@ function RequestsList({
 }) {
   const [busy, setBusy] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const { t } = useI18n()
 
   async function decide(id: string, status: "active" | "ended") {
     setBusy(id)
@@ -281,7 +285,7 @@ function RequestsList({
       {loading && !items.length ? (
         <Spinner />
       ) : items.length === 0 ? (
-        <EmptyState title="No requests">When a patient asks you to follow them, the request appears here.</EmptyState>
+        <EmptyState title={t.patients.noRequests}>{t.patients.noRequestsHint}</EmptyState>
       ) : (
         <ul>
           {items.map((r) => {
@@ -290,18 +294,18 @@ function RequestsList({
               <li key={r.id} className="flex flex-wrap items-center gap-4 border-t px-5 py-4 first:border-t-0">
                 <Avatar name={patient?.name ?? "?"} size={40} />
                 <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="font-semibold">{patient?.name ?? "Patient"}</span>
+                  <span className="font-semibold">{patient?.name ?? t.common.patient}</span>
                   <span className="text-[13px] text-muted-foreground">
-                    {patient?.email} · asked {fmtRelative(r.assignedAt)}
+                    {patient?.email} · {t.patients.asked(fmtRelative(r.assignedAt))}
                   </span>
                   {r.notes && <span className="mt-1 text-sm text-subtle-foreground">“{r.notes}”</span>}
                 </span>
                 <span className="flex gap-2">
                   <Button size="sm" loading={busy === r.id} onClick={() => decide(r.id, "active")}>
-                    Accept
+                    {t.patients.accept}
                   </Button>
                   <Button size="sm" variant="outline" disabled={busy === r.id} onClick={() => decide(r.id, "ended")}>
-                    Decline
+                    {t.patients.decline}
                   </Button>
                 </span>
               </li>
@@ -317,6 +321,8 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function AddPatient({ focus, onAdded }: { focus: boolean; onAdded: () => void }) {
   const cooldown = useCooldown()
+  const { t } = useI18n()
+  const p = t.patients
   const [mode, setMode] = useState<"new" | "existing">("new")
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -340,10 +346,10 @@ function AddPatient({ focus, onAdded }: { focus: boolean; onAdded: () => void })
     setError(null)
     setDone(null)
     const found: Record<string, string> = {}
-    if (!EMAIL.test(email.trim())) found.email = "Enter a valid email address."
+    if (!EMAIL.test(email.trim())) found.email = t.errors.validEmail
     if (mode === "new") {
-      if (!name.trim()) found.name = "Full name is required."
-      if (!city.trim()) found.city = "City is required."
+      if (!name.trim()) found.name = t.errors.nameRequired
+      if (!city.trim()) found.city = t.errors.cityRequired
     }
     setErrors(found)
     if (Object.keys(found).length) return
@@ -359,10 +365,10 @@ function AddPatient({ focus, onAdded }: { focus: boolean; onAdded: () => void })
           diabetesType: diabetes || undefined,
           sendInvitation: invite,
         })
-        setDone(`${name.trim()} was added${invite ? " and emailed a link to set a password" : ""}.`)
+        setDone(p.added(name.trim(), invite))
       } else {
         await assignmentService.create({ patientEmail: email.trim() })
-        setDone(`The patient with ${email.trim()} is now assigned to you.`)
+        setDone(p.assignedDone(email.trim()))
       }
       setName("")
       setEmail("")
@@ -379,14 +385,14 @@ function AddPatient({ focus, onAdded }: { focus: boolean; onAdded: () => void })
   }
 
   return (
-    <aside aria-label="Add patient" className="flex-[1_1_320px] lg:sticky lg:top-6">
+    <aside aria-label={p.addLabel} className="flex-[1_1_320px] lg:sticky lg:top-6">
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4 rounded-2xl border bg-card p-6">
-        <h2 className="text-lg font-semibold">Add a patient</h2>
+        <h2 className="text-lg font-semibold">{p.addTitle}</h2>
         <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1">
           {(
             [
-              ["new", "New patient"],
-              ["existing", "Existing (by email)"],
+              ["new", p.newPatient],
+              ["existing", p.existing],
             ] as const
           ).map(([key, label]) => (
             <button
@@ -409,14 +415,14 @@ function AddPatient({ focus, onAdded }: { focus: boolean; onAdded: () => void })
         <RateLimitNotice remaining={cooldown.remaining} />
 
         {mode === "new" && (
-          <Field label="Full name" error={errors.name}>
-            {(p) => <Input {...p} ref={first} value={name} onChange={(e) => setName(e.target.value)} />}
+          <Field label={t.auth.fullName} error={errors.name}>
+            {(f) => <Input {...f} ref={first} value={name} onChange={(e) => setName(e.target.value)} />}
           </Field>
         )}
-        <Field label="Email" error={errors.email}>
-          {(p) => (
+        <Field label={t.auth.email} error={errors.email}>
+          {(f) => (
             <Input
-              {...p}
+              {...f}
               ref={mode === "existing" ? first : undefined}
               type="email"
               value={email}
@@ -427,45 +433,45 @@ function AddPatient({ focus, onAdded }: { focus: boolean; onAdded: () => void })
         {mode === "new" && (
           <>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Date of birth">
-                {(p) => <Input {...p} type="date" value={dob} max={new Date().toISOString().slice(0, 10)} onChange={(e) => setDob(e.target.value)} />}
+              <Field label={p.dob}>
+                {(f) => <Input {...f} type="date" value={dob} max={new Date().toISOString().slice(0, 10)} onChange={(e) => setDob(e.target.value)} />}
               </Field>
-              <Field label="Sex">
-                {(p) => (
-                  <Select {...p} value={gender} onChange={(e) => setGender(e.target.value as Gender | "")}>
+              <Field label={p.sex}>
+                {(f) => (
+                  <Select {...f} value={gender} onChange={(e) => setGender(e.target.value as Gender | "")}>
                     <option value="">—</option>
-                    <option value="female">Female</option>
-                    <option value="male">Male</option>
+                    <option value="female">{t.sex.female}</option>
+                    <option value="male">{t.sex.male}</option>
                   </Select>
                 )}
               </Field>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="City" error={errors.city}>
-                {(p) => <Input {...p} value={city} onChange={(e) => setCity(e.target.value)} />}
+              <Field label={t.auth.city} error={errors.city}>
+                {(f) => <Input {...f} value={city} onChange={(e) => setCity(e.target.value)} />}
               </Field>
-              <Field label="Diabetes">
-                {(p) => (
-                  <Select {...p} value={diabetes} onChange={(e) => setDiabetes(e.target.value as DiabetesType | "")}>
-                    <option value="type2">Type 2</option>
-                    <option value="type1">Type 1</option>
-                    <option value="gestational">Gestational</option>
-                    <option value="other">Other</option>
-                    <option value="">Not known</option>
+              <Field label={p.diabetes}>
+                {(f) => (
+                  <Select {...f} value={diabetes} onChange={(e) => setDiabetes(e.target.value as DiabetesType | "")}>
+                    <option value="type2">{t.diabetes.type2}</option>
+                    <option value="type1">{t.diabetes.type1}</option>
+                    <option value="gestational">{t.diabetes.gestational}</option>
+                    <option value="other">{t.diabetes.other}</option>
+                    <option value="">{p.notKnown}</option>
                   </Select>
                 )}
               </Field>
             </div>
             <Checkbox checked={invite} onChange={(e) => setInvite(e.target.checked)}>
-              Email the patient a link to set their password
+              {p.invite}
             </Checkbox>
           </>
         )}
         <Button type="submit" loading={busy} disabled={cooldown.active}>
-          {mode === "new" ? "Create and assign" : "Assign to me"}
+          {mode === "new" ? p.createAssign : p.assignMe}
         </Button>
         <p className="text-[13px] leading-snug text-muted-foreground">
-          Only you, and other doctors the patient is assigned to, can see this record.
+          {p.privacy}
         </p>
       </form>
     </aside>

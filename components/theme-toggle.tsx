@@ -5,6 +5,7 @@ import { useTheme } from "next-themes"
 import { Moon, Sun } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { useI18n } from "@/components/i18n-provider"
 
 const subscribeToMount = () => () => {}
 const getClientSnapshot = () => true
@@ -12,6 +13,7 @@ const getServerSnapshot = () => false
 
 export function ThemeToggle({ className }: { className?: string }) {
   const { resolvedTheme, setTheme } = useTheme()
+  const { t } = useI18n()
   const mounted = useSyncExternalStore(
     subscribeToMount,
     getClientSnapshot,
@@ -26,14 +28,8 @@ export function ThemeToggle({ className }: { className?: string }) {
       variant="outline"
       size="icon"
       className={className ?? "size-11 rounded-[10px]"}
-      aria-label="Toggle light and dark theme"
-      title={
-        mounted
-          ? isDark
-            ? "Switch to light theme"
-            : "Switch to dark theme"
-          : "Toggle light and dark theme"
-      }
+      aria-label={t.common.toggleTheme}
+      title={mounted ? (isDark ? t.common.toLight : t.common.toDark) : t.common.toggleTheme}
       onClick={() => setTheme(isDark ? "light" : "dark")}
     >
       {isDark ? <Sun /> : <Moon />}

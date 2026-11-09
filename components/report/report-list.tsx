@@ -5,6 +5,7 @@ import { useState } from "react"
 import { Download } from "lucide-react"
 
 import { Alert, Card, EmptyState, PageTitle, RateLimitNotice, Spinner, StatusChip } from "@/components/rc/ui"
+import { useI18n } from "@/components/i18n-provider"
 import { useApi, useCooldown } from "@/hooks/use-api"
 import { errorMessage, RateLimitError } from "@/service/api-client"
 import { reportService } from "@/service/report.service"
@@ -12,20 +13,19 @@ import type { ReportSummary } from "@/lib/api-types"
 import { doctorName, fmtDate, userOf } from "@/lib/format"
 
 export function ReportList({ role }: { role: "doctor" | "patient" }) {
+  const { t } = useI18n()
   const { data, error, loading } = useApi(() => reportService.list({ size: 50 }), [])
   const base = role === "doctor" ? "/doctor/reports" : "/patient/reports"
   return (
     <>
-      <PageTitle>Reports</PageTitle>
+      <PageTitle>{t.report.reports}</PageTitle>
       {error ? <Alert>{errorMessage(error)}</Alert> : null}
       <Card className="overflow-hidden">
         {loading && !data ? (
           <Spinner />
         ) : !data?.items.length ? (
-          <EmptyState title="No reports yet">
-            {role === "doctor"
-              ? "Generate a report from a completed analysis."
-              : "Your doctor will send you a report after reviewing your screening."}
+          <EmptyState title={t.report.noneTitle}>
+            {role === "doctor" ? t.report.noneDoctor : t.report.nonePatient}
           </EmptyState>
         ) : (
           <ReportRows items={data.items} base={base} role={role} />
@@ -37,6 +37,7 @@ export function ReportList({ role }: { role: "doctor" | "patient" }) {
 
 export function ReportRows({ items, base, role }: { items: ReportSummary[]; base: string; role: "doctor" | "patient" }) {
   const cooldown = useCooldown()
+  const { t } = useI18n()
   const [error, setError] = useState<string | null>(null)
   async function download(r: ReportSummary) {
     setError(null)
@@ -61,17 +62,17 @@ export function ReportRows({ items, base, role }: { items: ReportSummary[]; base
                   {r.title}
                 </Link>
                 <span className="text-[13px] text-muted-foreground">
-                  {role === "doctor" ? other?.name ?? "Patient" : `From ${doctorName(other?.name)}`} ·{" "}
+                  {role === "doctor" ? (other?.name ?? t.common.patient) : t.report.from(doctorName(other?.name))} ·{" "}
                   {fmtDate(r.sentAt ?? r.createdAt)}
-                  {role === "patient" && !r.viewedAt ? " · New" : ""}
+                  {role === "patient" && !r.viewedAt ? ` · ${t.report.new}` : ""}
                 </span>
               </span>
-              {role === "doctor" && <StatusChip status={r.status} label={r.status === "sent" ? "Sent" : "Draft"} />}
+              {role === "doctor" && <StatusChip status={r.status} />}
               <button
                 type="button"
                 onClick={() => download(r)}
                 disabled={cooldown.active}
-                aria-label={`Download PDF, ${r.title}`}
+                aria-label={t.report.downloadLabel(r.title)}
                 className="flex size-11 shrink-0 items-center justify-center rounded-[9px] border border-input hover:bg-muted disabled:opacity-50"
               >
                 <Download className="size-[18px] text-primary" aria-hidden="true" />

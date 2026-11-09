@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useState, type FormEvent } from "react"
 
 import { AuthHeading } from "@/components/auth/auth-split"
+import { useI18n } from "@/components/i18n-provider"
 import { Alert, Button, Field, Input, RateLimitNotice } from "@/components/rc/ui"
 import { useCooldown } from "@/hooks/use-api"
 import { errorMessage, RateLimitError } from "@/service/api-client"
@@ -12,6 +13,7 @@ import { authService } from "@/service/auth.service"
 
 export function ForgotPasswordForm() {
   const cooldown = useCooldown()
+  const { t } = useI18n()
   const [email, setEmail] = useState("")
   const [sent, setSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -20,7 +22,7 @@ export function ForgotPasswordForm() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
-    if (!email.trim()) return setError("Enter your email address.")
+    if (!email.trim()) return setError(t.auth.enterEmail)
     setBusy(true)
     try {
       await authService.forgotPassword(email.trim())
@@ -35,21 +37,21 @@ export function ForgotPasswordForm() {
 
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
-      <AuthHeading title="Reset your password" subtitle="We will email you a link that works once, for 15 minutes." />
+      <AuthHeading title={t.auth.forgotTitle} subtitle={t.auth.forgotSubtitle} />
       {error && <Alert>{error}</Alert>}
       {sent && (
-        <Alert tone="success">If an account uses {email.trim()}, a reset link is on its way. Check your inbox.</Alert>
+        <Alert tone="success">{t.auth.resetSent(email.trim())}</Alert>
       )}
       <RateLimitNotice remaining={cooldown.remaining} />
-      <Field label="Email">
+      <Field label={t.auth.email}>
         {(p) => <Input {...p} type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />}
       </Field>
       <Button type="submit" size="lg" loading={busy} disabled={cooldown.active}>
-        Send reset link
+        {t.auth.sendResetLink}
       </Button>
       <p className="text-center text-[15px] text-muted-foreground">
         <Link href="/login" className="font-semibold text-primary hover:underline">
-          Back to log in
+          {t.auth.backToLogin}
         </Link>
       </p>
     </form>
@@ -62,6 +64,7 @@ export function ResetPasswordForm() {
   const token = params.get("token") ?? ""
   const invite = params.get("invite") === "1"
   const cooldown = useCooldown()
+  const { t } = useI18n()
   const [password, setPassword] = useState("")
   const [confirm, setConfirm] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -70,8 +73,8 @@ export function ResetPasswordForm() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setError(null)
-    if (password.length < 8) return setError("Password must be at least 8 characters.")
-    if (password !== confirm) return setError("The passwords do not match.")
+    if (password.length < 8) return setError(t.errors.passwordMin)
+    if (password !== confirm) return setError(t.auth.passwordsDiffer)
     setBusy(true)
     try {
       await authService.resetPassword(token, password)
@@ -87,10 +90,10 @@ export function ResetPasswordForm() {
   if (!token) {
     return (
       <div className="flex flex-col gap-5">
-        <AuthHeading title="Link not valid" />
-        <Alert>This page needs the link from the password email. Request a new one.</Alert>
+        <AuthHeading title={t.auth.linkInvalidTitle} />
+        <Alert>{t.auth.linkInvalid}</Alert>
         <Link href="/forgot-password" className="font-semibold text-primary hover:underline">
-          Request a new link
+          {t.auth.requestNewLink}
         </Link>
       </div>
     )
@@ -99,23 +102,23 @@ export function ResetPasswordForm() {
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
       <AuthHeading
-        title={invite ? "Set your password" : "Choose a new password"}
-        subtitle={invite ? "Your doctor created your RetinaCare account. Choose a password to sign in." : undefined}
+        title={invite ? t.auth.setPasswordTitle : t.auth.newPasswordTitle}
+        subtitle={invite ? t.auth.setPasswordSubtitle : undefined}
       />
       {error && <Alert>{error}</Alert>}
       <RateLimitNotice remaining={cooldown.remaining} />
-      <Field label="New password" hint="At least 8 characters.">
+      <Field label={t.auth.newPassword} hint={t.auth.passwordHint}>
         {(p) => (
           <Input {...p} type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
         )}
       </Field>
-      <Field label="Confirm password">
+      <Field label={t.auth.confirmPassword}>
         {(p) => (
           <Input {...p} type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
         )}
       </Field>
       <Button type="submit" size="lg" loading={busy} disabled={cooldown.active}>
-        Save password
+        {t.auth.savePassword}
       </Button>
     </form>
   )

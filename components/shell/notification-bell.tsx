@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 import { Bell } from "lucide-react"
 
+import { useI18n } from "@/components/i18n-provider"
 import { useApi } from "@/hooks/use-api"
 import { notificationService } from "@/service/notification.service"
 import { fmtRelative } from "@/lib/format"
@@ -11,6 +12,7 @@ import { cn } from "@/lib/utils"
 
 export function NotificationBell({ size = 44 }: { size?: number }) {
   const [open, setOpen] = useState(false)
+  const { t } = useI18n()
   const box = useRef<HTMLDivElement>(null)
   const { data, reload, setData } = useApi(() => notificationService.list({ size: 8 }), [])
   const unread = data?.unreadCount ?? 0
@@ -43,7 +45,7 @@ export function NotificationBell({ size = 44 }: { size?: number }) {
     <div ref={box} className="relative">
       <button
         type="button"
-        aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}
+        aria-label={t.notifications.label(unread)}
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
         style={{ width: size, height: size }}
@@ -51,35 +53,35 @@ export function NotificationBell({ size = 44 }: { size?: number }) {
       >
         <Bell className="size-5 text-subtle-foreground" aria-hidden="true" />
         {unread > 0 && (
-          <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#C2410C] px-1 text-[11px] font-bold text-white">
+          <span className="absolute -top-1.5 -end-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#C2410C] px-1 text-[11px] font-bold text-white">
             {unread > 9 ? "9+" : unread}
           </span>
         )}
       </button>
       {open && (
-        <div className="absolute right-0 z-40 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl border bg-popover shadow-lg">
+        <div className="absolute end-0 z-40 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl border bg-popover shadow-lg">
           <div className="flex items-center justify-between border-b px-4 py-3">
-            <span className="font-semibold">Notifications</span>
+            <span className="font-semibold">{t.notifications.title}</span>
             {unread > 0 && (
               <button type="button" onClick={markAll} className="text-sm font-semibold text-primary hover:underline">
-                Mark all read
+                {t.notifications.markAll}
               </button>
             )}
           </div>
           <ul className="max-h-96 overflow-y-auto">
-            {!data?.items.length && <li className="px-4 py-6 text-center text-sm text-muted-foreground">No notifications yet.</li>}
+            {!data?.items.length && <li className="px-4 py-6 text-center text-sm text-muted-foreground">{t.notifications.empty}</li>}
             {data?.items.map((n) => {
               const body = (
                 <>
                   <span className="flex items-center gap-2 font-semibold">
-                    {!n.read && <span className="size-2 shrink-0 rounded-full bg-primary" aria-label="Unread" />}
+                    {!n.read && <span className="size-2 shrink-0 rounded-full bg-primary" aria-label={t.common.unread} />}
                     {n.title}
                   </span>
                   <span className="text-sm text-muted-foreground">{n.body}</span>
                   <span className="text-xs text-muted-foreground">{fmtRelative(n.createdAt)}</span>
                 </>
               )
-              const cls = cn("flex flex-col gap-0.5 border-t px-4 py-3 text-left first:border-t-0", !n.read && "bg-accent/40")
+              const cls = cn("flex flex-col gap-0.5 border-t px-4 py-3 text-start first:border-t-0", !n.read && "bg-accent/40")
               const onClick = () => {
                 setOpen(false)
                 if (!n.read) void notificationService.markRead(n.id).then(() => reload()).catch(() => null)

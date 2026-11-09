@@ -5,16 +5,19 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useState, type FormEvent } from "react"
 
 import { AuthHeading } from "@/components/auth/auth-split"
+import { useI18n } from "@/components/i18n-provider"
 import { Alert, Button, Field, Input, RateLimitNotice } from "@/components/rc/ui"
 import { useCooldown } from "@/hooks/use-api"
 import { homeFor, useSession } from "@/hooks/use-session"
 import { ApiError, errorMessage, RateLimitError } from "@/service/api-client"
 import { authService } from "@/service/auth.service"
+import { userService } from "@/service/user.service"
 
 export function LoginForm() {
   const router = useRouter()
   const params = useSearchParams()
   const { refresh } = useSession()
+  const { t, locale } = useI18n()
   const cooldown = useCooldown()
   const [email, setEmail] = useState(params.get("email") ?? "")
   const [password, setPassword] = useState("")
@@ -27,13 +30,15 @@ export function LoginForm() {
     setError(null)
     setUnverified(false)
     if (!email.trim() || !password) {
-      setError("Enter your email and password.")
+      setError(t.auth.enterEmailPassword)
       return
     }
     setBusy(true)
     try {
       await authService.login(email.trim(), password)
       const me = await refresh()
+      // Keep the account's language (used for emails) in step with the language chosen here.
+      if (me && me.lang !== locale) void userService.setLanguage(locale).catch(() => null)
       router.replace(homeFor(me?.role))
     } catch (err) {
       cooldown.trip(err)
@@ -46,32 +51,32 @@ export function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} noValidate className="flex flex-col gap-5">
-      <AuthHeading title="Log in" subtitle="Welcome back. Use your email and password." />
+      <AuthHeading title={t.auth.loginTitle} subtitle={t.auth.loginSubtitle} />
 
-      {params.get("expired") && !error && <Alert tone="info">Your session ended. Please log in again.</Alert>}
-      {params.get("verified") && !error && <Alert tone="success">Email verified. You can log in now.</Alert>}
-      {params.get("reset") && !error && <Alert tone="success">Password changed. Log in with your new password.</Alert>}
+      {params.get("expired") && !error && <Alert tone="info">{t.auth.sessionEnded}</Alert>}
+      {params.get("verified") && !error && <Alert tone="success">{t.auth.verifiedNotice}</Alert>}
+      {params.get("reset") && !error && <Alert tone="success">{t.auth.resetNotice}</Alert>}
       {error && <Alert>{error}</Alert>}
       {unverified && (
         <Alert tone="warning">
-          Verify your email before logging in.{" "}
+          {t.auth.verifyFirst}{" "}
           <Link href={`/verify-otp?email=${encodeURIComponent(email.trim())}&resend=1`} className="font-semibold underline">
-            Get a verification code
+            {t.auth.getCode}
           </Link>
         </Alert>
       )}
       <RateLimitNotice remaining={cooldown.remaining} />
 
-      <Field label="Email">
+      <Field label={t.auth.email}>
         {(p) => (
           <Input {...p} type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         )}
       </Field>
       <Field
-        label="Password"
+        label={t.auth.password}
         action={
           <Link href="/forgot-password" className="text-sm font-medium text-primary hover:underline">
-            Forgot password?
+            {t.auth.forgotPassword}
           </Link>
         }
       >
@@ -87,13 +92,13 @@ export function LoginForm() {
       </Field>
 
       <Button type="submit" size="lg" loading={busy} disabled={cooldown.active}>
-        Log in
+        {t.auth.loginTitle}
       </Button>
 
       <p className="mt-1 text-center text-[15px] text-muted-foreground">
-        New to RetinaCare?{" "}
+        {t.auth.newHere}{" "}
         <Link href="/signup" className="font-semibold text-primary hover:underline">
-          Create an account
+          {t.auth.createAccount}
         </Link>
       </p>
     </form>
