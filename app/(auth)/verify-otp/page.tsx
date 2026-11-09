@@ -1,6 +1,14 @@
+import { Suspense } from "react"
 
-import { VerifyOtpForm } from "@/components/verify-otp-form"
+import { AuthSplit } from "@/components/auth/auth-split"
+import { VerifyForm } from "@/components/auth/verify-form"
 
-export default function VerifyOtpPage() {
-  return <VerifyOtpForm />
+export default function VerifyPage() {
+  return (
+    <AuthSplit>
+      <Suspense>
+        <VerifyForm />
+      </Suspense>
+    </AuthSplit>
+  )
 }

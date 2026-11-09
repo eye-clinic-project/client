@@ -1,5 +1,14 @@
-import { LoginForm } from "@/components/login-form";
+import { Suspense } from "react"
 
-export default function Page() {
-  return <LoginForm className="mx-auto w-full max-w-md" />
+import { AuthSplit } from "@/components/auth/auth-split"
+import { LoginForm } from "@/components/auth/login-form"
+
+export default function LoginPage() {
+  return (
+    <AuthSplit>
+      <Suspense>
+        <LoginForm />
+      </Suspense>
+    </AuthSplit>
+  )
 }

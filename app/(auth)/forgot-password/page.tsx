@@ -1,5 +1,10 @@
-import { ForgotPasswordForm } from "@/components/forgot-password-form"
+import { AuthSplit } from "@/components/auth/auth-split"
+import { ForgotPasswordForm } from "@/components/auth/password-forms"
 
 export default function ForgotPasswordPage() {
-  return <ForgotPasswordForm />
+  return (
+    <AuthSplit>
+      <ForgotPasswordForm />
+    </AuthSplit>
+  )
 }

@@ -10,7 +10,7 @@ const subscribeToMount = () => () => {}
 const getClientSnapshot = () => true
 const getServerSnapshot = () => false
 
-export function ThemeToggle() {
+export function ThemeToggle({ className }: { className?: string }) {
   const { resolvedTheme, setTheme } = useTheme()
   const mounted = useSyncExternalStore(
     subscribeToMount,
@@ -25,6 +25,7 @@ export function ThemeToggle() {
       type="button"
       variant="outline"
       size="icon"
+      className={className ?? "size-11 rounded-[10px]"}
       aria-label="Toggle light and dark theme"
       title={
         mounted

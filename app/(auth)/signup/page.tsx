@@ -1,5 +1,5 @@
-import { SignupForm } from "@/components/signup-form";
+import { SignupForm } from "@/components/auth/signup-form"
 
-export default function Page() {
-  return <SignupForm className="mx-auto w-full max-w-xl" />
+export default function SignupPage() {
+  return <SignupForm />
 }
