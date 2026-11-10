@@ -4,7 +4,6 @@ import Link from "next/link"
 import { Plus } from "lucide-react"
 
 import { useI18n } from "@/components/i18n-provider"
-import { NotificationBell } from "@/components/shell/notification-bell"
 import { Alert, ButtonLink, Card, CardHeader, EmptyState, GradeChip, PageTitle, Spinner, StatusChip } from "@/components/rc/ui"
 import { useApi } from "@/hooks/use-api"
 import { useSession } from "@/hooks/use-session"
@@ -23,7 +22,6 @@ export function DoctorDashboard() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <PageTitle eyebrow={fmtLongDay()}>{d.greeting(greeting(), firstName(me?.name))}</PageTitle>
         <div className="flex flex-wrap gap-3">
-          <NotificationBell size={48} />
           <ButtonLink href="/doctor/patients?add=1" variant="outline">
             {d.addPatient}
           </ButtonLink>

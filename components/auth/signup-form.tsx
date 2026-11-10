@@ -37,6 +37,7 @@ function validate(v: Values, t: Messages) {
   if (v.role === "doctor") {
     if (!v.clinicName.trim()) errors.clinicName = t.auth.clinicNameRequired
     if (!v.clinicAddress.trim()) errors.clinicAddress = t.auth.clinicAddressRequired
+    if (!v.licenseNumber.trim()) errors.licenseNumber = t.auth.licenseRequired
   }
   if (!v.acceptTerms) errors.acceptTerms = t.auth.consentRequired
   return errors
@@ -88,7 +89,7 @@ export function SignupForm() {
           clinicName: values.clinicName.trim(),
           clinicAddress: values.clinicAddress.trim(),
           specialty: values.specialty.trim() || undefined,
-          licenseNumber: values.licenseNumber.trim() || undefined,
+          licenseNumber: values.licenseNumber.trim(),
         }),
       })
       router.push(`/verify-otp?email=${encodeURIComponent(res.email)}`)
@@ -183,10 +184,11 @@ export function SignupForm() {
               <Field label={t.auth.specialty} optional>
                 {(p) => <Input {...p} {...text("specialty")} />}
               </Field>
-              <Field label={t.auth.licenseNumber} optional>
-                {(p) => <Input {...p} {...text("licenseNumber")} />}
+              <Field label={t.auth.licenseNumber} hint={t.auth.licenseHint} error={errors.licenseNumber}>
+                {(p) => <Input {...p} dir="ltr" autoComplete="off" className="font-mono" {...text("licenseNumber")} />}
               </Field>
             </div>
+            <Alert tone="info">{t.auth.doctorReviewNote}</Alert>
           </section>
         )}
 

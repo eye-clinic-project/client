@@ -313,6 +313,8 @@ const statusTone: Record<string, string> = {
   completed: "bg-[#E7F5EC] text-[#166534] dark:bg-[#123322] dark:text-[#8fe0aa]",
   sent: "bg-[#E7F5EC] text-[#166534] dark:bg-[#123322] dark:text-[#8fe0aa]",
   pending: "bg-warning-bg text-warning-fg",
+  approved: "bg-[#E7F5EC] text-[#166534] dark:bg-[#123322] dark:text-[#8fe0aa]",
+  rejected: "bg-danger-bg text-danger-fg",
   processing: "bg-warning-bg text-warning-fg",
   draft: "bg-muted text-subtle-foreground",
   failed: "bg-danger-bg text-danger-fg",

@@ -4,7 +4,7 @@ import type { AuthTokens, Me, SignUpDto, SignUpResponse } from "@/lib/api-types"
 
 export const authService = {
   signUp: (dto: SignUpDto) =>
-    apiClient<SignUpResponse>("/auth/sign-up", { method: "POST", body: dto }),
+    apiClient<SignUpResponse>("/auth/signup", { method: "POST", body: dto }),
 
   async login(email: string, password: string): Promise<AuthTokens> {
     const tokens = await apiClient<AuthTokens>("/auth/login", {

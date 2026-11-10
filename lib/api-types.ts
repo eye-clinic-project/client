@@ -41,6 +41,23 @@ export type DoctorProfile = {
   licenseNumber?: string
   bio?: string
   yearsOfExperience?: number
+  verificationStatus?: DoctorVerificationStatus
+  verificationSubmittedAt?: string | null
+  verifiedAt?: string | null
+  rejectionReason?: string | null
+  createdAt?: string
+}
+
+/** Admin review of a doctor's medical license. Only approved doctors can open the doctor panel. */
+export type DoctorVerificationStatus = "pending" | "approved" | "rejected"
+
+export type DoctorVerification = {
+  /** null when a Google sign-up doctor has not created a profile yet. */
+  status: DoctorVerificationStatus | null
+  licenseNumber: string | null
+  submittedAt: string | null
+  reviewedAt: string | null
+  rejectionReason: string | null
 }
 
 export type DiabetesType = "type1" | "type2" | "gestational" | "other"
@@ -63,6 +80,8 @@ export type Me = ApiUser & {
   lang: string | null
   profile: DoctorProfile | PatientProfile | null
   profileComplete: boolean
+  /** Doctors only: where their license review stands. */
+  verification: DoctorVerification | null
   dashboard: string
 }
 
@@ -102,7 +121,7 @@ export type FundusImage = {
   patient: ApiUser | Id
   uploadedBy: ApiUser | Id
   eye: EyeSide
-  source: "upload" | "device"
+  source: "upload"
   mimeType: string
   size: number
   originalName?: string
@@ -353,3 +372,22 @@ export type NotificationItem = {
 }
 
 export type NotificationsPage = Paged<NotificationItem> & { unreadCount: number }
+
+/* ---------- Admin ---------- */
+
+export type AdminDashboard = {
+  users: Partial<Record<UserRole, number>>
+  analyses: Record<string, number>
+  analysesLast30Days: number
+  gradeDistribution: Record<string, number>
+  reports: number
+  appointments: number
+  fundusImages: number
+  pendingDoctors: number
+}
+
+export type AdminDoctor = UserWithProfile<DoctorProfile & { verificationStatus: DoctorVerificationStatus }>
+
+export type UpdateDoctorProfileDto = Partial<
+  Pick<DoctorProfile, "clinicName" | "clinicAddress" | "specialty" | "licenseNumber" | "bio" | "yearsOfExperience">
+>

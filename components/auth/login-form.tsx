@@ -39,7 +39,7 @@ export function LoginForm() {
       const me = await refresh()
       // Keep the account's language (used for emails) in step with the language chosen here.
       if (me && me.lang !== locale) void userService.setLanguage(locale).catch(() => null)
-      router.replace(homeFor(me?.role))
+      router.replace(homeFor(me))
     } catch (err) {
       cooldown.trip(err)
       if (err instanceof ApiError && err.code === "EMAIL_NOT_VERIFIED") setUnverified(true)

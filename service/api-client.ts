@@ -68,6 +68,19 @@ export function setSessionExpiredHandler(handler: (() => void) | null) {
   onSessionExpired = handler
 }
 
+/** Error codes the server sends while a doctor's license is not approved yet. */
+export const DOCTOR_APPROVAL_CODES = ["DOCTOR_PENDING_APPROVAL", "DOCTOR_REJECTED", "DOCTOR_PROFILE_INCOMPLETE"] as const
+
+export function isDoctorApprovalError(error: unknown): boolean {
+  return error instanceof ApiError && (DOCTOR_APPROVAL_CODES as readonly string[]).includes(error.code ?? "")
+}
+
+/** Called when a doctor hits a route that needs an approved license (SessionProvider opens /doctor/pending). */
+let onApprovalRequired: (() => void) | null = null
+export function setApprovalRequiredHandler(handler: (() => void) | null) {
+  onApprovalRequired = handler
+}
+
 let refreshInFlight: Promise<string | null> | null = null
 
 async function rotateTokens(): Promise<string | null> {
@@ -178,7 +191,11 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
     }
   }
 
-  if (!response.ok) throw await toError(response)
+  if (!response.ok) {
+    const error = await toError(response)
+    if (response.status === 403 && isDoctorApprovalError(error)) onApprovalRequired?.()
+    throw error
+  }
   if (options.raw) return response as T
   if (response.status === 204) return undefined as T
 

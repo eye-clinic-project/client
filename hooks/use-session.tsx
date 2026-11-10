@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import type { Me, UserRole } from "@/lib/api-types"
 import { getStoredAccessToken } from "@/lib/api-config"
 import { authService } from "@/service/auth.service"
-import { setSessionExpiredHandler } from "@/service/api-client"
+import { setApprovalRequiredHandler, setSessionExpiredHandler } from "@/service/api-client"
 
 type SessionState = {
   me: Me | null
@@ -60,9 +60,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setMe(null)
       router.replace("/login?expired=1")
     })
+    // The license was rejected or is still under review: reload the status and show the waiting page.
+    setApprovalRequiredHandler(() => {
+      void authService
+        .me()
+        .then(setMe)
+        .catch(() => null)
+      router.replace("/doctor/pending")
+    })
     return () => {
       cancelled = true
       setSessionExpiredHandler(null)
+      setApprovalRequiredHandler(null)
     }
   }, [router])
 
@@ -76,9 +85,18 @@ export function useSession() {
   return ctx
 }
 
-/** Path of the dashboard for a role. */
-export function homeFor(role?: UserRole | null) {
-  return role === "doctor" ? "/doctor" : role === "patient" ? "/patient" : "/login"
+/** True for doctors whose license an admin has approved (and for every non-doctor). */
+export function isApproved(me: Me | null | undefined) {
+  return !!me && (me.role !== "doctor" || me.verification?.status === "approved")
+}
+
+/** Path of the signed-in user's home: their dashboard, or the license waiting page for unapproved doctors. */
+export function homeFor(me: Me | null | undefined) {
+  if (!me) return "/login"
+  if (me.role === "admin") return "/admin"
+  if (me.role === "patient") return "/patient"
+  if (me.role === "doctor") return isApproved(me) ? "/doctor" : "/doctor/pending"
+  return "/login"
 }
 
 /**
@@ -91,7 +109,7 @@ export function useRequireRole(role: UserRole): Me | null {
   useEffect(() => {
     if (loading) return
     if (!me) router.replace("/login")
-    else if (me.role !== role) router.replace(homeFor(me.role))
+    else if (me.role !== role) router.replace(homeFor(me))
   }, [loading, me, role, router])
   return me && me.role === role ? me : null
 }

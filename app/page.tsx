@@ -10,7 +10,7 @@ export default function HomePage() {
   const { me, loading } = useSession()
   const router = useRouter()
   useEffect(() => {
-    if (!loading) router.replace(me ? homeFor(me.role) : "/login")
+    if (!loading) router.replace(me ? homeFor(me) : "/login")
   }, [loading, me, router])
   return <Spinner />
 }
