@@ -1,5 +1,8 @@
-import { PatientDoctors } from "@/components/patient/doctors"
+import { pageMetadata } from "@/lib/i18n/metadata"
+import { PatientDoctors } from "./patient-doctors"
 
-export default function PatientDoctorsRoute() {
+export const generateMetadata = pageMetadata("doctors")
+
+export default function PatientDoctorsPage() {
   return <PatientDoctors />
 }

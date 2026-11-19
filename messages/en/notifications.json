@@ -1,0 +1,14 @@
+{
+  "title": "Notifications",
+  "unread": "{count, plural, =0 {All caught up} one {# unread} other {# unread}}",
+  "markAll": "Mark all as read",
+  "markedAll": "All notifications are marked as read.",
+  "views": "Notification views",
+  "all": "All",
+  "unreadTab": "Unread",
+  "unreadLabel": "Unread",
+  "delete": "Delete notification",
+  "empty": "No notifications yet",
+  "emptyUnread": "You're all caught up",
+  "loadMore": "Load more"
+}

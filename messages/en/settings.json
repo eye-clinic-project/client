@@ -1,0 +1,84 @@
+{
+  "title": "Settings",
+  "lead": "Your account, clinic and preferences.",
+  "leadPatient": "Your account and preferences.",
+  "sections": "Settings sections",
+  "profile": {
+    "title": "Profile",
+    "photoHint": "JPEG, PNG or WebP, at most 5 MB",
+    "upload": "Upload photo",
+    "remove": "Remove",
+    "uploaded": "Your photo was updated.",
+    "removed": "Your photo was removed.",
+    "name": "Full name",
+    "city": "City",
+    "email": "Email",
+    "emailHint": "Your sign-in email cannot be changed here.",
+    "saved": "Your profile was saved."
+  },
+  "clinic": {
+    "title": "Clinic",
+    "name": "Clinic name",
+    "specialty": "Specialty · optional",
+    "address": "Clinic address",
+    "years": "Years of experience · optional",
+    "bio": "About you · optional",
+    "bioHint": "Shown to patients on your profile. At most 2000 characters.",
+    "save": "Save clinic",
+    "saved": "Clinic details saved."
+  },
+  "license": {
+    "title": "License",
+    "approved": "Your license is verified",
+    "approvedBody": "Approved by an admin on {date}. Changing your license number needs a new review, and patient features are locked until it is approved again.",
+    "pending": "Your license is waiting for review",
+    "rejected": "Your license was declined",
+    "missing": "You haven't uploaded your license yet",
+    "number": "License number",
+    "status": "Status",
+    "documents": "Documents on file",
+    "view": "View verification"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "push": "Push notifications in this browser",
+    "pushHintDoctor": "Analysis results, patient requests, messages and appointment changes.",
+    "pushHintPatient": "Reports, appointment updates and messages.",
+    "blocked": "Notifications are blocked for this site. Allow them in your browser's site settings, then turn them on here.",
+    "unsupported": "This browser doesn't support push notifications.",
+    "enabled": "Push notifications are on for this browser.",
+    "disabled": "Push notifications are off for this browser.",
+    "inbox": "Your in-app inbox keeps every notification, whatever you choose here."
+  },
+  "security": {
+    "title": "Security",
+    "password": "Password",
+    "passwordHint": "We email you a 6-digit code to set a new password.",
+    "reset": "Reset password",
+    "resetTitle": "Reset your password",
+    "resetLead": "We sent a 6-digit code to {email}. Enter it with your new password.",
+    "codeSent": "We sent a code to your email.",
+    "updated": "Your password was updated.",
+    "everywhere": "Sign out everywhere",
+    "everywhereHint": "Ends every session on every device, including this one, and stops push notifications.",
+    "everywhereButton": "Sign out of all devices",
+    "everywhereTitle": "Sign out of all devices?",
+    "everywhereBody": "You'll need to sign in again on every device, including this one."
+  },
+  "preferences": {
+    "title": "Language & theme",
+    "language": "Language",
+    "languageHint": "Used for the app, emails, push notifications and error messages.",
+    "theme": "Theme",
+    "themeHint": "System follows your device setting."
+  },
+  "medical": {
+    "title": "Medical information",
+    "record": "Medical record",
+    "dob": "Date of birth",
+    "since": "Diabetes since",
+    "emergency": "Emergency contact",
+    "hint": "Managed by your doctor. Ask them if something is wrong."
+  },
+  "signOut": "Sign out"
+}

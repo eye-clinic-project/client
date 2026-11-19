@@ -1,7 +1,19 @@
-import type { ReactNode } from "react"
+import { DoctorShell } from "@/components/layout/doctor-shell"
+import { PushRegistrar } from "@/components/layout/push-registrar"
+import { requireRole } from "@/lib/auth/require-role"
+import { ChatSocketProvider } from "@/socket/chat-socket-provider"
 
-import { DoctorShell } from "@/components/shell/doctor-shell"
+export default async function DoctorLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const profile = await requireRole("doctor")
 
-export default function DoctorLayout({ children }: { children: ReactNode }) {
-  return <DoctorShell>{children}</DoctorShell>
+  return (
+    <ChatSocketProvider>
+      <PushRegistrar />
+      <DoctorShell profile={profile}>{children}</DoctorShell>
+    </ChatSocketProvider>
+  )
 }

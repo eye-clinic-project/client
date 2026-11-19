@@ -1,0 +1,33 @@
+{
+  "mainNav": "Main",
+  "openMenu": "Open menu",
+  "closeMenu": "Close menu",
+  "signOut": "Sign out",
+  "administrator": "Administrator",
+  "dashboard": "Dashboard",
+  "patients": "Patients",
+  "analyses": "Analyses",
+  "reports": "Reports",
+  "appointments": "Appointments",
+  "messages": "Messages",
+  "notifications": "Notifications",
+  "settings": "Settings",
+  "home": "Home",
+  "book": "Book appointment",
+  "visits": "My visits",
+  "myDoctors": "My doctors",
+  "verification": "Doctor verification",
+  "banner": {
+    "rejected": "Your license was not approved.",
+    "rejectedReason": "Your license was not approved: {reason}",
+    "pending": "Your license is being reviewed. Screening, chat and appointments unlock once it's approved.",
+    "missing": "Upload your medical license to unlock screening, chat and appointments.",
+    "view": "View status",
+    "verify": "Verify license"
+  },
+  "license": {
+    "uploading": "Uploading the license documents you added at sign-up…",
+    "uploaded": "Your license was submitted for review.",
+    "failed": "We couldn't upload your license documents. Upload them again on the verification page."
+  }
+}

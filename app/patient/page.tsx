@@ -1,5 +1,10 @@
-import { PatientHome } from "@/components/patient/home"
+import { requireRole } from "@/lib/auth/require-role"
+import { pageMetadata } from "@/lib/i18n/metadata"
+import { PatientHome } from "./patient-home"
 
-export default function PatientHomeRoute() {
-  return <PatientHome />
+export const generateMetadata = pageMetadata("home")
+
+export default async function PatientHomePage() {
+  const profile = await requireRole("patient")
+  return <PatientHome name={profile.name} />
 }

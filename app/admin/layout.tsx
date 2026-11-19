@@ -1,7 +1,11 @@
-import type { ReactNode } from "react"
+import { AdminShell } from "@/components/layout/admin-shell"
+import { requireRole } from "@/lib/auth/require-role"
 
-import { AdminShell } from "@/components/shell/admin-shell"
-
-export default function AdminLayout({ children }: { children: ReactNode }) {
-  return <AdminShell>{children}</AdminShell>
+export default async function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const profile = await requireRole("admin")
+  return <AdminShell profile={profile}>{children}</AdminShell>
 }

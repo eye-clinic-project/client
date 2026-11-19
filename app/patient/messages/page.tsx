@@ -1,11 +1,26 @@
-import { Suspense } from "react"
+import { ChatView } from "@/components/chat/chat-view"
+import { requireRole } from "@/lib/auth/require-role"
+import { pageMetadata } from "@/lib/i18n/metadata"
+import { single, type SearchParams } from "@/lib/search-params"
 
-import { ChatPage } from "@/components/chat/chat-page"
+export const generateMetadata = pageMetadata("messages")
 
-export default function PatientMessagesRoute() {
+export default async function PatientMessagesPage({
+  searchParams,
+}: {
+  searchParams: SearchParams
+}) {
+  const [profile, params] = await Promise.all([
+    requireRole("patient"),
+    searchParams,
+  ])
   return (
-    <Suspense>
-      <ChatPage role="patient" />
-    </Suspense>
+    <ChatView
+      role="patient"
+      selfId={profile.id}
+      basePath="/patient/messages"
+      initialConversationId={single(params.c)}
+      startWithUserId={single(params.doctor) ?? single(params.with)}
+    />
   )
 }

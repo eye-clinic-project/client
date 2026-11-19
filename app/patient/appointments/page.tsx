@@ -1,11 +1,8 @@
-import { Suspense } from "react"
+import { pageMetadata } from "@/lib/i18n/metadata"
+import { VisitsView } from "./visits-view"
 
-import { BookAppointment } from "@/components/patient/book-appointment"
+export const generateMetadata = pageMetadata("visits")
 
-export default function PatientAppointmentsRoute() {
-  return (
-    <Suspense>
-      <BookAppointment />
-    </Suspense>
-  )
+export default function VisitsPage() {
+  return <VisitsView />
 }

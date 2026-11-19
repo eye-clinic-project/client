@@ -1,52 +1,94 @@
-import { apiClient } from "./api-client"
 import type {
+  AiHealth,
   Analysis,
-  AnalysisHistoryEntry,
   AnalysisStatus,
-  DoctorReview,
-  EyeSide,
-  Paged,
-  ReviewDto,
-  UploadResult,
-} from "@/lib/api-types"
+  DrLevel,
+  Paginated,
+  Review,
+} from "@/types/api"
+import { api } from "./api"
+import { listTags } from "./tags"
 
-export const imageService = {
-  upload: (input: { file: File; patientId: string; eye: EyeSide; notes?: string; analyze: boolean }) => {
-    const form = new FormData()
-    form.append("file", input.file)
-    form.append("patientId", input.patientId)
-    form.append("eye", input.eye)
-    if (input.notes) form.append("notes", input.notes)
-    form.append("analyze", String(input.analyze))
-    return apiClient<UploadResult>("/fundus-images", { method: "POST", body: form })
-  },
+export interface AnalysisListParams {
+  page?: number
+  size?: number
+  patientId?: string
+  status?: AnalysisStatus
+  hasDR?: boolean
+  reviewed?: boolean
 }
 
-export const analysisService = {
-  list: (query: { patientId?: string; status?: AnalysisStatus; page?: number; size?: number } = {}) =>
-    apiClient<Paged<Analysis>>("/analyses", { query }),
-
-  getById: (id: string) => apiClient<Analysis>(`/analyses/${id}`),
-
-  /** Creates a pending analysis for an uploaded image; run it with predict(). */
-  create: (imageId: string) => apiClient<Analysis>("/analyses", { method: "POST", body: { imageId } }),
-
-  history: (id: string) => apiClient<AnalysisHistoryEntry[]>(`/analyses/${id}/history`),
-
-  predict: (id: string) => apiClient<Analysis>(`/analyses/${id}/predict`, { method: "POST" }),
-
-  retry: (id: string) => apiClient<Analysis>(`/analyses/${id}/retry`, { method: "POST" }),
+export interface ReviewPayload {
+  aiResultConfirmed: boolean
+  confirmedLevel: DrLevel
+  notes?: string
+  recommendations?: string
+  followUpDate?: string
 }
 
-export const reviewService = {
-  list: (query: { analysisId?: string; patientId?: string } = {}) =>
-    apiClient<Paged<DoctorReview>>("/doctor-reviews", { query }),
+export const analysisApi = api.injectEndpoints({
+  endpoints: (build) => ({
+    listAnalyses: build.query<Paginated<Analysis>, AnalysisListParams>({
+      query: (params) => ({ url: "/analysis", params }),
+      providesTags: (result) => listTags("Analysis", result),
+    }),
+    getAnalysis: build.query<Analysis, string>({
+      query: (id) => `/analysis/${id}`,
+      providesTags: (_result, _error, id) => [{ type: "Analysis", id }],
+    }),
+    getAiHealth: build.query<AiHealth, void>({
+      query: () => "/analysis/health",
+      providesTags: ["AiHealth"],
+    }),
+    createAnalysis: build.mutation<Analysis | null, FormData>({
+      query: (body) => ({ url: "/analysis", method: "POST", body }),
+      invalidatesTags: [{ type: "Analysis", id: "LIST" }],
+    }),
+    retryAnalysis: build.mutation<Analysis | null, string>({
+      query: (id) => ({ url: `/analysis/${id}/retry`, method: "POST" }),
+      invalidatesTags: (_result, _error, id) => [
+        { type: "Analysis", id },
+        { type: "Analysis", id: "LIST" },
+      ],
+    }),
+    deleteAnalysis: build.mutation<void, string>({
+      query: (id) => ({ url: `/analysis/${id}`, method: "DELETE" }),
+      invalidatesTags: [{ type: "Analysis", id: "LIST" }],
+    }),
+    getReview: build.query<Review | null, string>({
+      async queryFn(id, _api, _extra, baseQuery) {
+        const result = await baseQuery(`/analysis/${id}/review`)
+        if (result.error?.status === 404) return { data: null }
+        if (result.error) return { error: result.error }
+        return { data: result.data as Review }
+      },
+      providesTags: (_result, _error, id) => [{ type: "Review", id }],
+    }),
+    saveReview: build.mutation<
+      Review,
+      { analysisId: string; exists: boolean; body: ReviewPayload }
+    >({
+      query: ({ analysisId, exists, body }) => ({
+        url: `/analysis/${analysisId}/review`,
+        method: exists ? "PATCH" : "POST",
+        body,
+      }),
+      invalidatesTags: (_result, _error, { analysisId }) => [
+        { type: "Review", id: analysisId },
+        { type: "Analysis", id: analysisId },
+        { type: "Analysis", id: "LIST" },
+      ],
+    }),
+  }),
+})
 
-  create: (dto: ReviewDto) => apiClient<DoctorReview>("/doctor-reviews", { method: "POST", body: dto }),
-
-  update: (id: string, dto: Partial<ReviewDto>) => {
-    const { analysisId, ...fields } = dto
-    void analysisId
-    return apiClient<DoctorReview>(`/doctor-reviews/${id}`, { method: "PATCH", body: fields })
-  },
-}
+export const {
+  useListAnalysesQuery,
+  useGetAnalysisQuery,
+  useGetAiHealthQuery,
+  useCreateAnalysisMutation,
+  useRetryAnalysisMutation,
+  useDeleteAnalysisMutation,
+  useGetReviewQuery,
+  useSaveReviewMutation,
+} = analysisApi

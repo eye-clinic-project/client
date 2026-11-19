@@ -1,5 +1,8 @@
-import { ReportList } from "@/components/report/report-list"
+import { pageMetadata } from "@/lib/i18n/metadata"
+import { ReportsView } from "./reports-view"
 
-export default function DoctorReportsRoute() {
-  return <ReportList role="doctor" />
+export const generateMetadata = pageMetadata("reports")
+
+export default function ReportsPage() {
+  return <ReportsView />
 }

@@ -1,10 +1,13 @@
-"use client"
+import { pageMetadata } from "@/lib/i18n/metadata"
+import { AnalysisReview } from "./analysis-review"
 
-import { useParams } from "next/navigation"
+export const generateMetadata = pageMetadata("analysis")
 
-import { AnalysisResultPage } from "@/components/doctor/analysis-result"
-
-export default function DoctorAnalysisRoute() {
-  const { id } = useParams<{ id: string }>()
-  return <AnalysisResultPage id={id} />
+export default async function AnalysisPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  return <AnalysisReview id={id} />
 }

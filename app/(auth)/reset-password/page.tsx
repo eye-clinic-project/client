@@ -1,14 +1,17 @@
-import { Suspense } from "react"
+import { pageMetadata } from "@/lib/i18n/metadata"
+import { ResetPasswordForm } from "./reset-password-form"
 
-import { AuthSplit } from "@/components/auth/auth-split"
-import { ResetPasswordForm } from "@/components/auth/password-forms"
+export const generateMetadata = pageMetadata("resetPassword")
 
-export default function ResetPasswordPage() {
+type SearchParams = Promise<Record<string, string | string[] | undefined>>
+
+export default async function ResetPasswordPage({
+  searchParams,
+}: {
+  searchParams: SearchParams
+}) {
+  const { email } = await searchParams
   return (
-    <AuthSplit>
-      <Suspense>
-        <ResetPasswordForm />
-      </Suspense>
-    </AuthSplit>
+    <ResetPasswordForm defaultEmail={typeof email === "string" ? email : ""} />
   )
 }

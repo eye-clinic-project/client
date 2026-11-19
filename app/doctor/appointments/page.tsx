@@ -1,5 +1,8 @@
-import { DoctorAppointments } from "@/components/doctor/appointments"
+import { pageMetadata } from "@/lib/i18n/metadata"
+import { AppointmentsView } from "./appointments-view"
 
-export default function DoctorAppointmentsRoute() {
-  return <DoctorAppointments />
+export const generateMetadata = pageMetadata("appointments")
+
+export default function AppointmentsPage() {
+  return <AppointmentsView />
 }

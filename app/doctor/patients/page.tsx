@@ -1,11 +1,19 @@
-import { Suspense } from "react"
+import { pageMetadata } from "@/lib/i18n/metadata"
+import { single, type SearchParams } from "@/lib/search-params"
+import { PatientsView } from "./patients-view"
 
-import { PatientsPage } from "@/components/doctor/patients"
+export const generateMetadata = pageMetadata("patients")
 
-export default function DoctorPatientsRoute() {
+export default async function PatientsPage({
+  searchParams,
+}: {
+  searchParams: SearchParams
+}) {
+  const params = await searchParams
   return (
-    <Suspense>
-      <PatientsPage />
-    </Suspense>
+    <PatientsView
+      initialSearch={single(params.search) ?? ""}
+      initialAdd={single(params.add) === "1"}
+    />
   )
 }

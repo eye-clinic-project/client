@@ -1,10 +1,13 @@
-"use client"
+import { pageMetadata } from "@/lib/i18n/metadata"
+import { ReportEditor } from "./report-editor"
 
-import { useParams } from "next/navigation"
+export const generateMetadata = pageMetadata("report")
 
-import { ReportPage } from "@/components/report/report-view"
-
-export default function DoctorReportRoute() {
-  const { id } = useParams<{ id: string }>()
-  return <ReportPage id={id} role="doctor" />
+export default async function ReportPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  return <ReportEditor id={id} />
 }
