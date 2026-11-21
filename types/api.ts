@@ -127,8 +127,11 @@ export type AnalysisStatus = "pending" | "processing" | "completed" | "failed"
 export type EyeSide = "left" | "right" | "unknown"
 export type DrLevel = 0 | 1 | 2 | 3 | 4
 
+export type FindingCode = "N" | "D" | "G" | "C" | "A" | "H" | "M" | "O"
+export type Stage1Status = "DETECTED" | "SUSPECTED"
+
 export interface AnalysisFinding {
-  code: "N" | "D" | "G" | "C" | "A" | "H" | "M" | "O"
+  code: FindingCode
   name: string
   probability: number
   threshold: number
@@ -152,6 +155,18 @@ export interface Analysis {
   stage1: {
     hasDR: boolean | null
     confidence: number | null
+    /** Ensemble probability of the D class (null on analyses made before stage 1 was linked). */
+    drProbability?: number | null
+    /** Threshold drProbability was compared against. */
+    threshold?: number | null
+    /** DETECTED when any class passed its threshold, SUSPECTED when none did. */
+    status?: Stage1Status | null
+    detected?: FindingCode[]
+    /** Codes to display: the detected ones, or the top suspected ones. */
+    shown?: FindingCode[]
+    top?: FindingCode | null
+    /** Finding code the Grad-CAM heatmap explains. */
+    gradCamClass?: FindingCode | null
     findings: AnalysisFinding[]
   }
   stage2: {

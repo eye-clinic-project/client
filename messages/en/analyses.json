@@ -127,5 +127,35 @@
     },
     "defaultReportTitle": "Diabetic retinopathy screening — {eye}",
     "notSaved": "Save the review first."
-  }
+  },
+  "ai": {
+    "title": "AI service",
+    "online": "Online",
+    "offline": "Unavailable",
+    "mock": "Mock mode",
+    "disabled": "Disabled",
+    "mockNotice": "Results are generated for demo purposes and are not clinical.",
+    "disabledNotice": "AI analysis is turned off on the server. New uploads wait in the queue.",
+    "offlineNotice": "New analyses are queued and run as soon as the service is back.",
+    "model": "Model",
+    "ensemble": "Ensemble",
+    "ensembleValue": "{count} models · {size}px · {device}",
+    "queue": "Queue",
+    "queueValue": "{processing} running · {pending} waiting",
+    "queueIdle": "Idle",
+    "thresholds": "Decision thresholds",
+    "checked": "Checked {time}",
+    "refresh": "Check again",
+    "live": "Updating live"
+  },
+  "drProbability": "DR {value}",
+  "thresholdShort": "threshold {value}",
+  "meterLabel": "DR probability {value}, threshold {threshold}",
+  "suspected": "Top suspicions",
+  "mock": "Mock",
+  "gradCam": "Heatmap: {finding}",
+  "analysing": "Analysing…",
+  "retry": "Retry",
+  "retried": "The analysis was queued again.",
+  "attempts": "Attempt {count}"
 }

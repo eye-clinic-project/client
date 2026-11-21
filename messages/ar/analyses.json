@@ -127,5 +127,35 @@
     },
     "defaultReportTitle": "فحص اعتلال الشبكية السكري — {eye}",
     "notSaved": "احفظ المراجعة أولًا."
-  }
+  },
+  "ai": {
+    "title": "خدمة الذكاء الاصطناعي",
+    "online": "متصلة",
+    "offline": "غير متاحة",
+    "mock": "وضع تجريبي",
+    "disabled": "معطلة",
+    "mockNotice": "النتائج مولدة لأغراض العرض وليست نتائج سريرية.",
+    "disabledNotice": "تحليل الذكاء الاصطناعي معطل على الخادم. الصور الجديدة تنتظر في قائمة الانتظار.",
+    "offlineNotice": "تضاف التحليلات الجديدة إلى قائمة الانتظار وتعمل فور عودة الخدمة.",
+    "model": "النموذج",
+    "ensemble": "المجموعة",
+    "ensembleValue": "{count} نماذج · {size} بكسل · {device}",
+    "queue": "قائمة الانتظار",
+    "queueValue": "{processing} قيد التشغيل · {pending} في الانتظار",
+    "queueIdle": "لا يوجد عمل",
+    "thresholds": "حدود القرار",
+    "checked": "آخر فحص {time}",
+    "refresh": "افحص مرة أخرى",
+    "live": "يتم التحديث مباشرة"
+  },
+  "drProbability": "الاعتلال {value}",
+  "thresholdShort": "الحد {value}",
+  "meterLabel": "احتمال الاعتلال {value}، الحد {threshold}",
+  "suspected": "أعلى الاحتمالات",
+  "mock": "تجريبي",
+  "gradCam": "الخريطة الحرارية: {finding}",
+  "analysing": "جارٍ التحليل…",
+  "retry": "إعادة المحاولة",
+  "retried": "أعيدت إضافة التحليل إلى قائمة الانتظار.",
+  "attempts": "المحاولة {count}"
 }

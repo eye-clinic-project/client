@@ -12,9 +12,9 @@ import {
   UsersIcon,
 } from "lucide-react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
-import type { ReactNode } from "react"
+import { useEffect, type ReactNode } from "react"
 
 import { useListAnalysesQuery } from "@/service/analysis.service"
 import { useListMyAppointmentsQuery } from "@/service/appointment.service"
@@ -28,6 +28,24 @@ import type { SessionProfile } from "@/types/next-auth"
 import { LicenseDraftUploader } from "./license-draft-uploader"
 import { SidebarShell, type ShellNavItem } from "./sidebar-shell"
 
+const VERIFICATION_ROUTE = "/doctor/verification"
+// Pages a doctor can open before an admin approves the license. Everything else
+// needs approval: the server answers 403 there.
+const PENDING_ROUTES = [
+  VERIFICATION_ROUTE,
+  "/doctor/settings",
+  "/doctor/notifications",
+]
+
+function openWhilePending(pathname: string) {
+  return (
+    pathname === "/doctor" ||
+    PENDING_ROUTES.some(
+      (route) => pathname === route || pathname.startsWith(`${route}/`)
+    )
+  )
+}
+
 export function DoctorShell({
   profile,
   children,
@@ -38,8 +56,18 @@ export function DoctorShell({
   const t = useTranslations("shell")
   const tc = useTranslations("common")
   const pathname = usePathname()
-  const { data: verification } = useGetMyVerificationQuery()
+  const router = useRouter()
+  const { data: verification, isError: verificationFailed } =
+    useGetMyVerificationQuery()
   const approved = verification?.status === "approved"
+  // Until the verification status is known, treat the doctor as pending so
+  // approval-only pages don't render and fire requests that will be refused.
+  const locked = !approved && !verificationFailed
+  const blocked = locked && !openWhilePending(pathname)
+
+  useEffect(() => {
+    if (blocked && verification) router.replace(VERIFICATION_ROUTE)
+  }, [blocked, router, verification])
   const { data: clinic } = useGetMyClinicQuery()
   const { data: toReview } = useListAnalysesQuery(
     { reviewed: false, status: "completed", size: 1 },
@@ -82,6 +110,9 @@ export function DoctorShell({
       badge: unreadMessages,
     },
   ]
+  const nav = locked
+    ? primary.filter((item) => item.href === "/doctor")
+    : primary
   const secondary: ShellNavItem[] = [
     {
       href: "/doctor/notifications",
@@ -93,7 +124,7 @@ export function DoctorShell({
   ]
 
   const showBanner =
-    verification && !approved && pathname !== "/doctor/verification"
+    verification && !approved && pathname !== VERIFICATION_ROUTE
   const banner = showBanner ? (
     <div
       role="status"
@@ -123,7 +154,7 @@ export function DoctorShell({
   return (
     <SidebarShell
       home="/doctor"
-      primary={primary}
+      primary={nav}
       secondary={secondary}
       user={{
         name: tc("doctorName", { name: profile.name }),
@@ -133,7 +164,7 @@ export function DoctorShell({
       banner={banner}
     >
       <LicenseDraftUploader email={profile.email} verification={verification} />
-      {children}
+      {blocked ? null : children}
     </SidebarShell>
   )
 }

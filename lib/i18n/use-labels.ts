@@ -3,7 +3,7 @@
 import { useLocale, useTranslations } from "next-intl"
 import { useMemo } from "react"
 
-import type { Analysis, DrLevel, EyeSide } from "@/types/api"
+import type { Analysis, DrLevel, EyeSide, FindingCode } from "@/types/api"
 import type { Tone } from "@/util/format"
 
 const intlLocale = (locale: string) => (locale === "ar" ? "ar-EG" : "en-GB")
@@ -82,6 +82,7 @@ export function useAnalysisLabels() {
       eyeShort: (eye: EyeSide | undefined) => t(`eye.${eye ?? "unknown"}Short`),
       level: (level: DrLevel) => t(`drLevel.${level}`),
       levelLong: (level: DrLevel) => t(`drLevelLong.${level}`),
+      finding: (code: FindingCode) => t(`finding.${code}`),
       stage1(analysis: Analysis): {
         label: string
         detail: string
@@ -92,6 +93,12 @@ export function useAnalysisLabels() {
             label: t("stage1.failed"),
             detail: analysis.error ?? t("stage1.failedDetail"),
             tone: "danger",
+          }
+        if (analysis.status === "pending")
+          return {
+            label: t("stage1.queued"),
+            detail: t("stage1.queuedDetail"),
+            tone: "neutral",
           }
         if (analysis.status !== "completed")
           return {
@@ -106,9 +113,16 @@ export function useAnalysisLabels() {
             : t("confidence", {
                 value: format.number(Math.round(confidence * 1000) / 10),
               })
-        return analysis.stage1.hasDR
-          ? { label: t("stage1.dr"), detail, tone: "danger" }
-          : { label: t("stage1.noDr"), detail, tone: "success" }
+        if (analysis.stage1.hasDR)
+          return { label: t("stage1.dr"), detail, tone: "danger" }
+        const other = analysis.stage1.findings.some(
+          (finding) => finding.detected && finding.code !== "N"
+        )
+        if (other)
+          return { label: t("stage1.noDrOther"), detail, tone: "warning" }
+        if (analysis.stage1.status === "SUSPECTED")
+          return { label: t("stage1.noDrUnsure"), detail, tone: "warning" }
+        return { label: t("stage1.noDr"), detail, tone: "success" }
       },
       status(analysis: Analysis): { label: string; tone: Tone } {
         const map: Record<Analysis["status"], Tone> = {

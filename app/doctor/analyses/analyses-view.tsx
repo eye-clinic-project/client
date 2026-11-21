@@ -1,9 +1,10 @@
 "use client"
 
-import { PlusIcon, ScanEyeIcon } from "lucide-react"
+import { PlusIcon, RotateCcwIcon, ScanEyeIcon } from "lucide-react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
+import { toast } from "sonner"
 
 import { FilterSelect } from "@/components/form/select-field"
 import { PageHeader } from "@/components/page/page-header"
@@ -12,12 +13,17 @@ import { EmptyState, ErrorState, ListSkeleton } from "@/components/page/states"
 import { TabBar } from "@/components/page/tab-bar"
 import { StatusChip } from "@/components/status-chip"
 import { UserAvatar } from "@/components/user-avatar"
+import { useErrorText } from "@/lib/i18n/use-error-text"
 import { useAnalysisLabels, useFormat } from "@/lib/i18n/use-labels"
 import {
+  useGetAiHealthQuery,
   useListAnalysesQuery,
+  useRetryAnalysisMutation,
   type AnalysisListParams,
 } from "@/service/analysis.service"
 import type { AnalysisStatus } from "@/types/api"
+import { AiServicePanel } from "./ai-service-panel"
+import { Stage1Cell } from "./stage1-cell"
 
 type Tab = "all" | "review" | "dr" | "failed"
 
@@ -29,6 +35,9 @@ const TAB_FILTER: Record<Tab, AnalysisListParams> = {
 }
 
 const PAGE_SIZE = 15
+/** While anything is queued or running the list refreshes this often, so results appear without a reload. */
+const LIVE_POLL_MS = 5_000
+const IDLE_POLL_MS = 30_000
 
 export function AnalysesView() {
   const t = useTranslations("analyses")
@@ -39,6 +48,34 @@ export function AnalysesView() {
   const [status, setStatus] = useState<"" | AnalysisStatus>("")
   const [result, setResult] = useState<"" | "dr" | "none">("")
   const [page, setPage] = useState(1)
+  const errorText = useErrorText()
+  const [retry] = useRetryAnalysisMutation()
+  const [retrying, setRetrying] = useState<string | null>(null)
+
+  const health = useGetAiHealthQuery(undefined, { pollingInterval: 60_000 })
+  const processing = useListAnalysesQuery(
+    { status: "processing", size: 1 },
+    { pollingInterval: IDLE_POLL_MS }
+  ).data?.count
+  const pending = useListAnalysesQuery(
+    { status: "pending", size: 1 },
+    { pollingInterval: IDLE_POLL_MS }
+  ).data?.count
+  const live = (processing ?? 0) + (pending ?? 0) > 0
+  const poll = { pollingInterval: live ? LIVE_POLL_MS : IDLE_POLL_MS }
+  const aiReady = Boolean(health.data?.available)
+
+  const onRetry = async (id: string) => {
+    setRetrying(id)
+    try {
+      await retry(id).unwrap()
+      toast.success(t("retried"))
+    } catch (caught) {
+      toast.error(errorText(caught))
+    } finally {
+      setRetrying(null)
+    }
+  }
 
   const filters: AnalysisListParams = {
     ...(status ? { status } : {}),
@@ -46,12 +83,14 @@ export function AnalysesView() {
     ...TAB_FILTER[tab],
   }
   const { data, isLoading, isError, refetch, isFetching } =
-    useListAnalysesQuery({ ...filters, page, size: PAGE_SIZE })
+    useListAnalysesQuery({ ...filters, page, size: PAGE_SIZE }, poll)
   const counts = {
-    all: useListAnalysesQuery({ size: 1 }).data?.count,
-    review: useListAnalysesQuery({ ...TAB_FILTER.review, size: 1 }).data?.count,
-    dr: useListAnalysesQuery({ ...TAB_FILTER.dr, size: 1 }).data?.count,
-    failed: useListAnalysesQuery({ ...TAB_FILTER.failed, size: 1 }).data?.count,
+    all: useListAnalysesQuery({ size: 1 }, poll).data?.count,
+    review: useListAnalysesQuery({ ...TAB_FILTER.review, size: 1 }, poll).data
+      ?.count,
+    dr: useListAnalysesQuery({ ...TAB_FILTER.dr, size: 1 }, poll).data?.count,
+    failed: useListAnalysesQuery({ ...TAB_FILTER.failed, size: 1 }, poll).data
+      ?.count,
   }
   const filtered = tab !== "all" || status !== "" || result !== ""
   const reset = () => setPage(1)
@@ -70,6 +109,15 @@ export function AnalysesView() {
             {t("new")}
           </Link>
         }
+      />
+      <AiServicePanel
+        health={health.data}
+        loading={health.isLoading}
+        checkedAt={health.fulfilledTimeStamp}
+        onRefresh={() => void health.refetch()}
+        refreshing={health.isFetching}
+        processing={processing}
+        pending={pending}
       />
       <TabBar
         label={t("views")}
@@ -138,7 +186,7 @@ export function AnalysesView() {
             className="overflow-x-auto border border-border"
             aria-busy={isFetching}
           >
-            <table className="w-full min-w-[820px] text-sm">
+            <table className="w-full min-w-[960px] text-sm">
               <thead className="bg-surface text-xs font-semibold text-subtle">
                 <tr>
                   {(
@@ -166,7 +214,6 @@ export function AnalysesView() {
               </thead>
               <tbody>
                 {data.docs.map((analysis) => {
-                  const stage1 = labels.stage1(analysis)
                   const state = labels.status(analysis)
                   const review = labels.review(analysis)
                   return (
@@ -188,25 +235,8 @@ export function AnalysesView() {
                       <td className="px-4 py-3 text-muted-foreground">
                         {labels.eyeShort(analysis.image?.eye)}
                       </td>
-                      <td className="px-4 py-3">
-                        <span className="flex flex-col gap-0.5">
-                          <span
-                            className={
-                              stage1.tone === "danger"
-                                ? "font-semibold text-danger"
-                                : stage1.tone === "success"
-                                  ? "font-semibold text-success"
-                                  : "font-semibold"
-                            }
-                          >
-                            {stage1.label}
-                          </span>
-                          {stage1.detail && analysis.status === "completed" && (
-                            <span className="text-xs text-subtle">
-                              {stage1.detail}
-                            </span>
-                          )}
-                        </span>
+                      <td className="px-4 py-3 align-top">
+                        <Stage1Cell analysis={analysis} />
                       </td>
                       <td className="px-4 py-3">
                         <StatusChip tone={state.tone}>{state.label}</StatusChip>
@@ -224,18 +254,43 @@ export function AnalysesView() {
                         {format.dateTime(analysis.createdAt)}
                       </td>
                       <td className="px-4 py-3 text-end">
-                        <Link
-                          href={`/doctor/analyses/${analysis._id}`}
-                          className={
-                            review?.tone === "warning"
-                              ? "inline-flex min-h-9 items-center bg-primary px-3 text-[13px] font-semibold text-primary-foreground hover:bg-primary/90"
-                              : "inline-flex min-h-9 items-center border border-border px-3 text-[13px] font-semibold hover:bg-muted"
-                          }
-                        >
-                          {review?.tone === "warning"
-                            ? t("reviewAction")
-                            : t("open")}
-                        </Link>
+                        <span className="inline-flex items-center justify-end gap-2">
+                          {analysis.status === "failed" && (
+                            <button
+                              type="button"
+                              onClick={() => void onRetry(analysis._id)}
+                              disabled={retrying === analysis._id || !aiReady}
+                              title={
+                                aiReady
+                                  ? undefined
+                                  : (health.data?.error ?? undefined)
+                              }
+                              className="inline-flex min-h-9 items-center gap-1.5 bg-primary px-3 text-[13px] font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+                            >
+                              <RotateCcwIcon
+                                className={
+                                  retrying === analysis._id
+                                    ? "size-3.5 animate-spin"
+                                    : "size-3.5"
+                                }
+                                aria-hidden="true"
+                              />
+                              {t("retry")}
+                            </button>
+                          )}
+                          <Link
+                            href={`/doctor/analyses/${analysis._id}`}
+                            className={
+                              review?.tone === "warning"
+                                ? "inline-flex min-h-9 items-center bg-primary px-3 text-[13px] font-semibold text-primary-foreground hover:bg-primary/90"
+                                : "inline-flex min-h-9 items-center border border-border px-3 text-[13px] font-semibold hover:bg-muted"
+                            }
+                          >
+                            {review?.tone === "warning"
+                              ? t("reviewAction")
+                              : t("open")}
+                          </Link>
+                        </span>
                       </td>
                     </tr>
                   )

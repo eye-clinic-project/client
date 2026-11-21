@@ -55,7 +55,10 @@
     "rightShort": "Right",
     "unknownShort": "Not set"
   },
-  "gender": { "male": "Male", "female": "Female" },
+  "gender": {
+    "male": "Male",
+    "female": "Female"
+  },
   "appointmentStatus": {
     "pending": "Pending",
     "confirmed": "Confirmed",
@@ -76,7 +79,11 @@
     "processing": "Processing",
     "processingDetail": "Waiting for the AI service",
     "dr": "DR detected",
-    "noDr": "No DR"
+    "noDr": "No DR",
+    "queued": "Queued",
+    "queuedDetail": "Waiting for a free AI worker",
+    "noDrOther": "No DR · other findings",
+    "noDrUnsure": "No DR · inconclusive"
   },
   "drLevel": {
     "0": "No DR",
@@ -92,7 +99,10 @@
     "3": "Severe non-proliferative DR",
     "4": "Proliferative DR"
   },
-  "reportStatus": { "draft": "Draft", "sent": "Sent" },
+  "reportStatus": {
+    "draft": "Draft",
+    "sent": "Sent"
+  },
   "greeting": {
     "morning": "Good morning, {name}",
     "afternoon": "Good afternoon, {name}",
@@ -105,5 +115,15 @@
     "blocked": "Notifications are blocked in this browser. Allow them in the site settings.",
     "unsupported": "This browser doesn't support push notifications."
   },
-  "disclaimer": "AI screening supports your doctor's judgement. It does not replace a full eye examination."
+  "disclaimer": "AI screening supports your doctor's judgement. It does not replace a full eye examination.",
+  "finding": {
+    "N": "Normal",
+    "D": "Diabetic retinopathy",
+    "G": "Glaucoma",
+    "C": "Cataract",
+    "A": "AMD",
+    "H": "Hypertensive retinopathy",
+    "M": "Pathological myopia",
+    "O": "Other abnormalities"
+  }
 }
