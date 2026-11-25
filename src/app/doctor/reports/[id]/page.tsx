@@ -1,4 +1,7 @@
+/** /doctor/reports/[id] — edit, regenerate, send or download one report. */
+
 import { pageMetadata } from "@/lib/i18n/metadata"
+
 import { ReportEditor } from "./report-editor"
 
 export const generateMetadata = pageMetadata("report")

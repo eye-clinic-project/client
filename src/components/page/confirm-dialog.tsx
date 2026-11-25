@@ -1,5 +1,7 @@
 "use client"
 
+/** Yes/No confirmation dialog for destructive or important actions (delete, sign out everywhere…). */
+
 import { Loader2Icon } from "lucide-react"
 import { useTranslations } from "next-intl"
 import type { ReactNode } from "react"

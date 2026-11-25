@@ -1,5 +1,7 @@
 "use client"
 
+/** Read-only view of a sent report (content, recommendations, doctor) with PDF download. */
+
 import {
   ArrowLeftIcon,
   CalendarPlusIcon,
@@ -9,16 +11,16 @@ import {
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 
+import { PdfPreview } from "@/components/common/pdf-preview"
 import { PageHeader } from "@/components/page/page-header"
 import { DetailList, Panel } from "@/components/page/panel"
 import { ErrorState } from "@/components/page/states"
-import { PdfPreview } from "@/components/pdf-preview"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useReportDownload } from "@/hooks/use-report-download"
+import { formatBytes } from "@/lib/format"
 import { useFormat } from "@/lib/i18n/use-labels"
-import { useGetReportQuery } from "@/service/report.service"
-import { formatBytes } from "@/util/format"
+import { useGetReportQuery } from "@/services/report.service"
 
 export function PatientReport({ id }: { id: string }) {
   const t = useTranslations("patient.reports")

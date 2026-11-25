@@ -1,3 +1,5 @@
+/** Sign in / Sign up tabs shown above the auth forms (server component, plain links). */
+
 import Link from "next/link"
 import { getTranslations } from "next-intl/server"
 

@@ -1,5 +1,7 @@
+/** Color tone for an appointment chip. A pending change request wins over the status. */
+
+import type { Tone } from "@/lib/format"
 import type { Appointment } from "@/types/api"
-import type { Tone } from "@/util/format"
 
 export function appointmentTone(
   appointment: Pick<Appointment, "status" | "changeRequest">

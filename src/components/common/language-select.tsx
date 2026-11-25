@@ -1,22 +1,32 @@
 "use client"
 
+/**
+ * Language switching (English / Arabic).
+ *
+ * - useChangeLanguage(): writes the `language` cookie, flips <html lang/dir> right
+ *   away, clears cached API data (it was fetched in the old language) and
+ *   re-renders server components with the new locale.
+ * - LanguageSelect: compact dropdown (auth pages, headers).
+ * - LanguageRadio: radio buttons (settings page).
+ */
+
 import { useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
 import { useId, useTransition } from "react"
 
+import { useUi } from "@/contexts/ui-context"
 import { directionOf } from "@/lib/i18n/language"
+import { useQueryClient } from "@/lib/query/provider"
 import { cn } from "@/lib/utils"
-import { useAppDispatch, useAppSelector } from "@/redux/hooks"
-import { languageChanged } from "@/redux/slices/ui.slice"
-import { api } from "@/service/api"
 import type { Language } from "@/types/api"
 
 const NAMES: Record<Language, string> = { en: "English", ar: "العربية" }
 
 export function useChangeLanguage() {
   const router = useRouter()
-  const dispatch = useAppDispatch()
-  const language = useAppSelector((state) => state.ui.language)
+  const queryClient = useQueryClient()
+  const { language, setLanguage } = useUi()
+
   const [pending, startTransition] = useTransition()
 
   function change(next: Language) {
@@ -24,8 +34,9 @@ export function useChangeLanguage() {
     document.cookie = `language=${next}; path=/; max-age=31536000; samesite=lax`
     document.documentElement.lang = next
     document.documentElement.dir = directionOf(next)
-    dispatch(languageChanged(next))
-    dispatch(api.util.resetApiState())
+    setLanguage(next)
+    // Backend messages/labels are localized, so refetch everything.
+    queryClient.reset()
     startTransition(() => router.refresh())
   }
 
@@ -34,6 +45,7 @@ export function useChangeLanguage() {
 
 export function LanguageSelect({ className }: { className?: string }) {
   const id = useId()
+
   const t = useTranslations("common")
   const { language, change, pending } = useChangeLanguage()
 

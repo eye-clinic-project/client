@@ -1,5 +1,11 @@
+/**
+ * /doctor/patients — my patients, and search to assign existing ones.
+ * `?search=` prefills the search; `?add=1` opens the "add patient" panel.
+ */
+
 import { pageMetadata } from "@/lib/i18n/metadata"
 import { single, type SearchParams } from "@/lib/search-params"
+
 import { PatientsView } from "./patients-view"
 
 export const generateMetadata = pageMetadata("patients")

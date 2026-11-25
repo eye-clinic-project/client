@@ -1,5 +1,14 @@
+/**
+ * Downloads files that need the access token (scans, Grad-CAM, PDFs, license docs).
+ *
+ * <img src> / <a href> can't send an Authorization header, so we fetch the file
+ * as a Blob with the token and hand out an object URL instead. Retries once
+ * after refreshing on 401, like lib/api/request.ts.
+ */
+
 import { tokenStore } from "@/lib/auth/token-store"
 import { publicEnv } from "@/lib/env"
+
 import { toApiError } from "./error"
 
 export async function fetchProtectedFile(path: string): Promise<Blob> {
@@ -19,6 +28,10 @@ export async function fetchProtectedFile(path: string): Promise<Blob> {
   return response.blob()
 }
 
+/**
+ * Opens a protected file in a new tab. The blank tab is opened first, inside
+ * the click handler, so popup blockers allow it; we fill it in once loaded.
+ */
 export async function openProtectedFile(path: string) {
   const popup = window.open("", "_blank")
   try {

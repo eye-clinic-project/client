@@ -1,48 +1,69 @@
 import { serverApi } from "@/lib/api/server-api"
 import type { TokenPair } from "@/types/api"
 
-const GRACE_MS = 2 * 60_000
+/**
+ * The backend rotates refresh tokens: each one works only once. If two requests
+ * refresh with the same token at the same time, the second would fail and sign
+ * the user out. So concurrent (and shortly repeated) rotations of the same token
+ * share one backend call and get the same new token pair.
+ */
+
+/** How long a finished rotation is reused for late callers with the old token. */
+const REUSE_WINDOW_MS = 2 * 60_000
 
 interface Rotation {
-  promise: Promise<TokenPair>
-  settledAt?: number
+  result: Promise<TokenPair>
+  finishedAt?: number
 }
 
-const globalStore = globalThis as typeof globalThis & {
+// Stored on globalThis so dev hot reloads don't start a fresh, empty map.
+const globalCache = globalThis as typeof globalThis & {
   __retinaRotations?: Map<string, Rotation>
 }
+const rotationsByToken = (globalCache.__retinaRotations ??= new Map<
+  string,
+  Rotation
+>())
 
-const rotations = (globalStore.__retinaRotations ??= new Map())
-
-function sweep(now: number) {
-  for (const [key, rotation] of rotations) {
-    if (rotation.settledAt && now - rotation.settledAt > GRACE_MS)
-      rotations.delete(key)
+function forgetOldRotations(now: number) {
+  for (const [token, rotation] of rotationsByToken) {
+    const expired =
+      rotation.finishedAt !== undefined &&
+      now - rotation.finishedAt > REUSE_WINDOW_MS
+    if (expired) rotationsByToken.delete(token)
   }
 }
 
-export function rotateRefreshToken(refreshToken: string): Promise<TokenPair> {
-  sweep(Date.now())
-
-  const existing = rotations.get(refreshToken)
-  if (existing) return existing.promise
-
+function startRotation(refreshToken: string): Rotation {
   const rotation: Rotation = {
-    promise: serverApi<TokenPair>("/token/refresh", {
+    result: serverApi<TokenPair>("/authentication/refresh", {
       method: "POST",
       body: { refreshToken },
     }),
   }
-  rotations.set(refreshToken, rotation)
 
-  rotation.promise.then(
+  rotation.result.then(
+    // Success: keep it for a while so late callers get the same pair.
     () => {
-      rotation.settledAt = Date.now()
+      rotation.finishedAt = Date.now()
     },
+    // Failure: drop it so the next caller can try again.
     () => {
-      rotations.delete(refreshToken)
+      rotationsByToken.delete(refreshToken)
     }
   )
 
-  return rotation.promise
+  return rotation
+}
+
+/** Exchanges a refresh token for a new token pair, at most once per token. */
+export function rotateRefreshToken(refreshToken: string): Promise<TokenPair> {
+  forgetOldRotations(Date.now())
+
+  let rotation = rotationsByToken.get(refreshToken)
+  if (!rotation) {
+    rotation = startRotation(refreshToken)
+    rotationsByToken.set(refreshToken, rotation)
+  }
+  return rotation.result
 }

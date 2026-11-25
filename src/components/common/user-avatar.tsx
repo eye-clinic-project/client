@@ -1,6 +1,8 @@
+/** User photo with initials fallback. */
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { initials } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import { initials } from "@/util/format"
 
 interface UserAvatarProps {
   name: string | null | undefined

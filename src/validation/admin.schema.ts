@@ -1,3 +1,5 @@
+/** Admin forms: the reason required when rejecting a doctor's license. */
+
 import { z } from "zod"
 
 import { vm } from "@/lib/i18n/validation"

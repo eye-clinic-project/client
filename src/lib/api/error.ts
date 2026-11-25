@@ -1,3 +1,12 @@
+/**
+ * Backend error helpers.
+ *
+ * The backend answers errors as `{ statusCode, message: string | string[], errorCode? }`.
+ * ApiError is thrown by serverApi/fetchProtectedFile; client requests throw HttpError
+ * objects, so messagesOf()/errorMessage() handle both shapes.
+ * In components prefer `useErrorText()` (translated fallbacks).
+ */
+
 import type { ApiErrorBody } from "@/types/api"
 
 export class ApiError extends Error {
@@ -23,11 +32,13 @@ export function isApiErrorBody(value: unknown): value is ApiErrorBody {
   )
 }
 
+/** Normalizes the backend `message` field to an array. */
 export function messagesOf(body: unknown): string[] {
   if (!isApiErrorBody(body)) return []
   return Array.isArray(body.message) ? body.message : [body.message]
 }
 
+/** Builds an ApiError from a failed fetch Response (body may be empty/non-JSON). */
 export async function toApiError(response: Response): Promise<ApiError> {
   const body: unknown = await response.json().catch(() => null)
   return new ApiError(
@@ -37,6 +48,7 @@ export async function toApiError(response: Response): Promise<ApiError> {
   )
 }
 
+/** Best human-readable message for any error (English fallbacks; see useErrorText for translated ones). */
 export function errorMessage(
   error: unknown,
   fallback = "Something went wrong. Please try again."

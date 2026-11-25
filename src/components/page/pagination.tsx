@@ -1,5 +1,7 @@
 "use client"
 
+/** "Showing X–Y of Z" with previous/next buttons for paginated lists (page is 1-based). */
+
 import { useTranslations } from "next-intl"
 
 export function Pagination({

@@ -1,5 +1,11 @@
 "use client"
 
+/**
+ * Settings → Security:
+ * - Change password: emails a code, then a dialog takes code + new password.
+ * - Sign out everywhere: revokes all sessions on all devices.
+ */
+
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
@@ -25,8 +31,9 @@ import { useErrorText } from "@/lib/i18n/use-error-text"
 import {
   useForgotPasswordMutation,
   useResetPasswordMutation,
-} from "@/service/auth.service"
+} from "@/services/auth.service"
 import { passwordChangeSchema } from "@/validation/settings.schema"
+
 import { SettingsRow } from "./settings-row"
 
 export function SecuritySection({ email }: { email: string }) {
@@ -86,6 +93,7 @@ export function SecuritySection({ email }: { email: string }) {
   )
 }
 
+/** Second step of the password change: code from the email + new password. */
 function ResetPasswordDialog({
   email,
   onClose,

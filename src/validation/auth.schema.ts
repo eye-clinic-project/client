@@ -1,6 +1,9 @@
+/** Schemas for the public auth pages: sign-in, sign-up, email verification, password reset, complete profile. */
+
 import { z } from "zod"
 
 import { vm } from "@/lib/i18n/validation"
+
 import {
   email,
   licenseDocuments,
@@ -18,6 +21,13 @@ export const signInSchema = z.object({
     .max(72, vm("tooLong", { max: 72 })),
 })
 
+/**
+ * Sign-up for patients and doctors.
+ * Doctors must also give clinic + license info and 1–3 license documents.
+ * Output is split into:
+ * - account: the body for POST /authentication/sign-up
+ * - license: files saved locally and uploaded after first sign-in (lib/license-draft.ts)
+ */
 export const signUpSchema = z
   .object({
     role: z.enum(["patient", "doctor"]),
@@ -84,6 +94,7 @@ export const emailSchema = z.object({ email })
 
 export const verifyEmailSchema = z.object({ email, code: otp })
 
+/** confirmPassword is only checked here; it is not sent to the backend. */
 export const resetPasswordSchema = z
   .object({
     email,

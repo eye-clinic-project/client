@@ -1,9 +1,20 @@
+/**
+ * /sign-in — email/password and Google sign-in.
+ *
+ * Query params:
+ * - callbackUrl: where to go after sign-in (only same-site paths are accepted)
+ * - email:       prefill the email field
+ * - verified / reset / expired: show an info notice
+ * - error:       Auth.js/our error code to show (see lib/auth/sign-in-errors.ts)
+ */
+
 import { getTranslations } from "next-intl/server"
 
 import { googleEnabled } from "@/auth"
 import { AuthTabs } from "@/components/auth/auth-tabs"
+import { safeCallbackUrl, signInErrorCode } from "@/lib/auth/sign-in-errors"
 import { pageMetadata } from "@/lib/i18n/metadata"
-import { safeCallbackUrl, signInErrorCode } from "@/util/auth-messages"
+
 import { SignInForm } from "./sign-in-form"
 
 export const generateMetadata = pageMetadata("signIn")
@@ -23,6 +34,7 @@ export default async function SignInPage({
     searchParams,
     getTranslations("auth.signIn"),
   ])
+  // At most one info notice, in this priority order.
   const notice = single(params.verified)
     ? t("verified")
     : single(params.reset)

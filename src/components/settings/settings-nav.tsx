@@ -1,5 +1,7 @@
 "use client"
 
+/** In-page navigation for the settings page (anchor links to each section). */
+
 import { useTranslations } from "next-intl"
 
 export function SettingsNav({

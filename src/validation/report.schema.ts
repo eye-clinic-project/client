@@ -1,3 +1,5 @@
+/** Report editor form. Empty optional sections are omitted from the request. */
+
 import { z } from "zod"
 
 import { optionalText, requiredText } from "./common.schema"

@@ -1,5 +1,15 @@
 "use client"
 
+/**
+ * Sign-up form, in up to two steps:
+ * 1. account: role, name, city, email, password (+ clinic info for doctors)
+ * 2. license (doctors only): license number and 1–3 documents
+ *
+ * The account is created right away. License files can't be uploaded yet (no
+ * session), so they are saved in the browser (lib/license-draft.ts) and uploaded
+ * automatically after the first sign-in. Next stop: /verify-email.
+ */
+
 import { zodResolver } from "@hookform/resolvers/zod"
 import { ArrowLeftIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -19,7 +29,7 @@ import { Field, FieldLabel } from "@/components/ui/field"
 import { useErrorText } from "@/lib/i18n/use-error-text"
 import { saveLicenseDraft } from "@/lib/license-draft"
 import { cn } from "@/lib/utils"
-import { useSignUpMutation } from "@/service/auth.service"
+import { useSignUpMutation } from "@/services/auth.service"
 import { signUpSchema, type SignUpInput } from "@/validation/auth.schema"
 import { DOCUMENT_TYPES } from "@/validation/common.schema"
 
@@ -37,6 +47,7 @@ const DEFAULTS: SignUpInput = {
   documents: [],
 }
 
+/** Fields on step 1. Validated before moving to step 2, and used to jump back on errors. */
 const ACCOUNT_FIELDS: FieldPath<SignUpInput>[] = [
   "name",
   "city",
@@ -51,6 +62,7 @@ export function SignUpForm({ googleEnabled }: { googleEnabled: boolean }) {
   const router = useRouter()
   const t = useTranslations("auth")
   const tc = useTranslations("common")
+
   const errorText = useErrorText()
   const [signUp] = useSignUpMutation()
   const [error, setError] = useState<string | null>(null)
@@ -75,6 +87,7 @@ export function SignUpForm({ googleEnabled }: { googleEnabled: boolean }) {
         setError(errorText(caught))
       }
     },
+    // Submit failed validation: if a step-1 field is wrong, show step 1 again.
     (errors) => {
       if (ACCOUNT_FIELDS.some((field) => field in errors)) setStep("account")
     }

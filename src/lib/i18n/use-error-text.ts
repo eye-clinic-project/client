@@ -1,5 +1,12 @@
 "use client"
 
+/**
+ * Turns any API error into a message for the user.
+ *
+ * Order: backend message (already in the user's language thanks to x-language)
+ * → translated generic message for network / rate-limit errors → fallback.
+ */
+
 import { useTranslations } from "next-intl"
 import { useCallback } from "react"
 

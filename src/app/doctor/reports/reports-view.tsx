@@ -1,19 +1,21 @@
 "use client"
 
+/** Reports list with status tabs, paging, and quick actions (open, download). */
+
 import { DownloadIcon, FileTextIcon } from "lucide-react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
 
+import { StatusChip } from "@/components/common/status-chip"
+import { UserAvatar } from "@/components/common/user-avatar"
 import { PageHeader } from "@/components/page/page-header"
 import { Pagination } from "@/components/page/pagination"
 import { EmptyState, ErrorState, ListSkeleton } from "@/components/page/states"
 import { TabBar } from "@/components/page/tab-bar"
-import { StatusChip } from "@/components/status-chip"
-import { UserAvatar } from "@/components/user-avatar"
 import { useReportDownload } from "@/hooks/use-report-download"
 import { useFormat } from "@/lib/i18n/use-labels"
-import { useListReportsQuery } from "@/service/report.service"
+import { useListReportsQuery } from "@/services/report.service"
 import type { ReportStatus } from "@/types/api"
 
 const PAGE_SIZE = 15

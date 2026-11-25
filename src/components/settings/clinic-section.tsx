@@ -1,5 +1,7 @@
 "use client"
 
+/** Settings → Clinic (doctors): clinic name, address, specialty, bio, years of experience. */
+
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useTranslations } from "next-intl"
 import { useForm } from "react-hook-form"
@@ -11,7 +13,7 @@ import { TextareaField } from "@/components/form/textarea-field"
 import { Panel } from "@/components/page/panel"
 import { Button } from "@/components/ui/button"
 import { useErrorText } from "@/lib/i18n/use-error-text"
-import { useUpdateMyClinicMutation } from "@/service/doctor.service"
+import { useUpdateMyClinicMutation } from "@/services/doctor.service"
 import type { DoctorClinic } from "@/types/api"
 import { clinicSchema } from "@/validation/settings.schema"
 

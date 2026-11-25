@@ -6,7 +6,10 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   {
-    files: ["components/protected-image.tsx", "components/image-preview.tsx"],
+    files: [
+      "src/components/common/protected-image.tsx",
+      "src/components/common/image-preview.tsx",
+    ],
     rules: { "@next/next/no-img-element": "off" },
   },
   // Override default ignores of eslint-config-next.

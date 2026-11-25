@@ -1,18 +1,28 @@
 "use client"
 
+/**
+ * Full sign-out. Always use this instead of calling next-auth's signOut directly:
+ * it also removes the push device, closes the chat socket and clears cached data.
+ * `everywhere: true` revokes all of the user's sessions on every device.
+ */
+
 import { signOut } from "next-auth/react"
 import { useCallback, useState } from "react"
 
+import { useChatActions } from "@/contexts/chat-context"
 import { tokenStore } from "@/lib/auth/token-store"
-import { useAppDispatch } from "@/redux/hooks"
-import { chatReset } from "@/redux/slices/chat.slice"
-import { api } from "@/service/api"
-import { userApi } from "@/service/user.service"
-import { chatSocket } from "@/socket/chat.socket"
+import { useQueryClient } from "@/lib/query/provider"
+import { chatSocket } from "@/lib/socket/chat.socket"
+import {
+  useLogoutEverywhereMutation,
+  useUnregisterDeviceMutation,
+} from "@/services/user.service"
+
 import { releaseDeviceToken, storedDeviceToken } from "./use-push-notifications"
 
 export function useSignOut() {
-  const dispatch = useAppDispatch()
+  const queryClient = useQueryClient()
+  const chat = useChatActions()
   const [pending, setPending] = useState(false)
 
   const run = useCallback(
@@ -20,25 +30,24 @@ export function useSignOut() {
       setPending(true)
       const deviceToken = storedDeviceToken()
       if (options?.everywhere) {
-        await dispatch(
-          userApi.endpoints.logoutEverywhere.initiate({
-            deviceToken: deviceToken ?? undefined,
-          })
-        )
+        await useLogoutEverywhereMutation
+          .execute(queryClient, { deviceToken: deviceToken ?? undefined })
+          .catch(() => undefined)
         await releaseDeviceToken()
       } else if (deviceToken) {
-        await dispatch(
-          userApi.endpoints.unregisterDevice.initiate({ token: deviceToken })
-        )
+        await useUnregisterDeviceMutation
+          .execute(queryClient, { token: deviceToken })
+          .catch(() => undefined)
         await releaseDeviceToken()
       }
       chatSocket().disconnect()
       tokenStore.clear()
       await signOut({ redirectTo: "/sign-in" })
-      dispatch(chatReset())
-      dispatch(api.util.resetApiState())
+      // Clear data after leaving so the next user never sees it.
+      chat.reset()
+      queryClient.reset()
     },
-    [dispatch]
+    [chat, queryClient]
   )
 
   return { signOut: run, pending }

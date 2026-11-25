@@ -1,7 +1,13 @@
+/**
+ * Page <title> helper. Usage in a page.tsx:
+ *   export const generateMetadata = pageMetadata("analyses")
+ * The key must exist in messages/<lang>/meta.json (type-checked).
+ */
+
 import type { Metadata } from "next"
 import { getTranslations } from "next-intl/server"
 
-import type en from "@/messages/en"
+import type en from "@/i18n/messages/en"
 
 type MetaKey = keyof (typeof en)["meta"]
 

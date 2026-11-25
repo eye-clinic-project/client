@@ -1,5 +1,7 @@
 "use client"
 
+/** Light / dark / system theme switch (radio group). */
+
 import { MonitorIcon, MoonIcon, SunIcon } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useTheme } from "next-themes"
@@ -24,6 +26,8 @@ export function ThemeToggle({
 }) {
   const t = useTranslations("common")
   const { theme, setTheme } = useTheme()
+  // The saved theme is only known in the browser. Render nothing selected on the
+  // server and during hydration, then the real value (avoids a hydration mismatch).
   const mounted = useSyncExternalStore(
     subscribe,
     () => true,

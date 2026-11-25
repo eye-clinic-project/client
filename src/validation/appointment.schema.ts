@@ -1,9 +1,16 @@
+/** Appointment forms: doctor availability, booking, cancel/reschedule requests and decisions. */
+
 import { z } from "zod"
 
+import { combine } from "@/lib/dates"
 import { vm } from "@/lib/i18n/validation"
-import { combine } from "@/util/dates"
+
 import { optionalText } from "./common.schema"
 
+/**
+ * Doctor availability for one day. Inputs are strings from <input>/<select>;
+ * output is the API body with ISO dates and numbers.
+ */
 export const availabilitySchema = z
   .object({
     date: z.string().min(1, vm("required")),
@@ -38,6 +45,10 @@ export const availabilitySchema = z
 
 export type AvailabilityInput = z.input<typeof availabilitySchema>
 
+/**
+ * How many slots the availability form will create (shown as a preview).
+ * Slots are separated by breaks; the last slot needs no break after it.
+ */
 export function countSlots(value: AvailabilityInput): number {
   if (!value.date || !value.from || !value.to) return 0
   const minutes =
@@ -65,6 +76,7 @@ export const cancelRequestSchema = z.object({
     .max(500, vm("tooLong", { max: 500 })),
 })
 
+/** A note is required when the reason is "other". */
 export const rescheduleRequestSchema = z
   .object({
     slotId: z.string().min(1, vm("slotRequired")),

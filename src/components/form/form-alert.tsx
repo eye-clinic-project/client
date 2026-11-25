@@ -1,3 +1,5 @@
+/** Banner for form-level messages (e.g. server errors) above a form. Tones: error, success, info… */
+
 import { CircleAlertIcon, CircleCheckIcon, InfoIcon } from "lucide-react"
 import type { ReactNode } from "react"
 

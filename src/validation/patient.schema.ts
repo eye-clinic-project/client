@@ -1,6 +1,12 @@
+/**
+ * Patient profile forms (doctor creating/editing a patient).
+ * All inputs are strings; toProfile() converts them to the API types and drops empty values.
+ */
+
 import { z } from "zod"
 
 import { vm } from "@/lib/i18n/validation"
+
 import {
   blankToUndefined,
   email,
@@ -41,6 +47,7 @@ const diabetesSince = z
     vm("yearRange", { min: 1900, max: currentYear })
   )
 
+// Fields shared by create and update. Email is create-only.
 const profileFields = {
   name: requiredText(100),
   city: requiredText(100),
@@ -76,6 +83,7 @@ export const updatePatientSchema = z.object(profileFields).transform(toProfile)
 export type CreatePatientInput = z.input<typeof createPatientSchema>
 export type UpdatePatientInput = z.input<typeof updatePatientSchema>
 
+/** Default values for the create form. */
 export const EMPTY_PATIENT: CreatePatientInput = {
   name: "",
   email: "",

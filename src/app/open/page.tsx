@@ -1,3 +1,11 @@
+/**
+ * Landing page for push-notification clicks (see public/firebase-messaging-sw.js).
+ *
+ * `?link=` is the backend link of the notification. We make sure the user is
+ * signed in (keeping this URL as callbackUrl), then redirect to the matching
+ * page for their role via notificationRoute().
+ */
+
 import { redirect } from "next/navigation"
 
 import { auth } from "@/auth"

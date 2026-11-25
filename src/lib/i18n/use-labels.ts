@@ -1,13 +1,24 @@
 "use client"
 
+/**
+ * Locale-aware formatting and labels for UI code.
+ *
+ * - useFormat():         dates, times, numbers, percents, "3 hours ago"
+ * - useAnalysisLabels(): translated labels + color tone for analysis results
+ * - useGreeting():       "Good morning, <name>"
+ * - ageFrom():           age in whole years from a birth date
+ */
+
 import { useLocale, useTranslations } from "next-intl"
 import { useMemo } from "react"
 
+import type { Tone } from "@/lib/format"
 import type { Analysis, DrLevel, EyeSide, FindingCode } from "@/types/api"
-import type { Tone } from "@/util/format"
 
+// Locale passed to Intl formatters (Egyptian Arabic / British English date order).
 const intlLocale = (locale: string) => (locale === "ar" ? "ar-EG" : "en-GB")
 
+/** Formatters are created once per locale (Intl formatters are expensive to build). */
 export function useFormat() {
   const locale = intlLocale(useLocale())
   return useMemo(() => {
@@ -44,6 +55,7 @@ export function useFormat() {
       dayNumber: make({ day: "numeric" }),
       number: (value: number) => number.format(value),
       percent: (value: number) => percent.format(value),
+      // "in 2 days" / "5 minutes ago": picks the largest unit that fits.
       relative(value: string | Date) {
         const diff = Math.round((new Date(value).getTime() - Date.now()) / 1000)
         const units: [Intl.RelativeTimeFormatUnit, number][] = [
@@ -83,6 +95,9 @@ export function useAnalysisLabels() {
       level: (level: DrLevel) => t(`drLevel.${level}`),
       levelLong: (level: DrLevel) => t(`drLevelLong.${level}`),
       finding: (code: FindingCode) => t(`finding.${code}`),
+      // Headline for the AI screening result, by priority:
+      // failed → queued → processing → DR found → other disease found →
+      // uncertain (SUSPECTED) → healthy.
       stage1(analysis: Analysis): {
         label: string
         detail: string
@@ -136,6 +151,7 @@ export function useAnalysisLabels() {
           tone: map[analysis.status],
         }
       },
+      // Whether a completed analysis still needs the doctor's review (null if not completed).
       review(analysis: Analysis): { label: string; tone: Tone } | null {
         if (analysis.status !== "completed") return null
         return analysis.reviewedAt

@@ -1,5 +1,7 @@
 "use client"
 
+/** Shows a field's validation error, translating vm() keys (see lib/i18n/validation.ts). */
+
 import type { FieldError as HookFieldError } from "react-hook-form"
 
 import { FieldError } from "@/components/ui/field"

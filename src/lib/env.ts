@@ -1,3 +1,12 @@
+/**
+ * Validated environment variables.
+ *
+ * `publicEnv` holds NEXT_PUBLIC_* values (inlined at build time, safe for the
+ * browser). Zod validation fails fast on malformed URLs.
+ * Firebase is optional: if its key or VAPID key is missing, push is disabled
+ * (`firebase: null`).
+ */
+
 import { z } from "zod"
 
 const publicSchema = z.object({
@@ -38,6 +47,10 @@ export const publicEnv = publicSchema.parse({
     firebaseValues.apiKey && firebaseValues.vapidKey ? firebaseValues : null,
 })
 
+/**
+ * Backend URL for server-side calls. API_URL lets the server use an internal
+ * address that the browser can't reach; otherwise the public URL is used.
+ */
 export function serverApiUrl(): string {
   return process.env.API_URL ?? publicEnv.apiUrl
 }

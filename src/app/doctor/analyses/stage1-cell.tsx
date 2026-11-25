@@ -1,9 +1,14 @@
 "use client"
 
+/**
+ * Compact stage-1 (screening) result for a table cell: verdict, DR probability vs
+ * threshold, and up to 3 other findings.
+ */
+
 import { FlameIcon, LoaderCircleIcon } from "lucide-react"
 import { useTranslations } from "next-intl"
 
-import { StatusChip } from "@/components/status-chip"
+import { StatusChip } from "@/components/common/status-chip"
 import { useAnalysisLabels, useFormat } from "@/lib/i18n/use-labels"
 import { cn } from "@/lib/utils"
 import type { Analysis, AnalysisFinding, FindingCode } from "@/types/api"

@@ -1,4 +1,7 @@
+/** /doctor/reports — reports list (drafts and sent). */
+
 import { pageMetadata } from "@/lib/i18n/metadata"
+
 import { ReportsView } from "./reports-view"
 
 export const generateMetadata = pageMetadata("reports")

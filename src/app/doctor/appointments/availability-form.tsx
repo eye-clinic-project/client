@@ -1,5 +1,7 @@
 "use client"
 
+/** Add availability for one day: time range, slot length and break; previews how many slots will be created. */
+
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useTranslations } from "next-intl"
 import { useForm, useWatch } from "react-hook-form"
@@ -8,9 +10,9 @@ import { toast } from "sonner"
 import { SelectField } from "@/components/form/select-field"
 import { SubmitButton } from "@/components/form/submit-button"
 import { TextField } from "@/components/form/text-field"
+import { addDays, toDateInput } from "@/lib/dates"
 import { useErrorText } from "@/lib/i18n/use-error-text"
-import { useCreateAvailabilityMutation } from "@/service/appointment.service"
-import { addDays, toDateInput } from "@/util/dates"
+import { useCreateAvailabilityMutation } from "@/services/appointment.service"
 import {
   availabilitySchema,
   countSlots,

@@ -1,5 +1,11 @@
 "use client"
 
+/**
+ * Native <select> fields.
+ * - SelectField: bound to react-hook-form.
+ * - FilterSelect: plain controlled select for list filters (not inside a form).
+ */
+
 import {
   Controller,
   type Control,
@@ -11,6 +17,7 @@ import { FormFieldError } from "@/components/form/form-error"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { cn } from "@/lib/utils"
 
+/** Shared styling so native selects match the other inputs. */
 export const nativeSelectClass =
   "h-12 w-full rounded-none border border-input bg-background px-3 text-[15px] text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive"
 

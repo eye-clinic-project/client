@@ -1,5 +1,8 @@
+/** /patient/book?doctor=<id> — book an appointment. `doctor` preselects one of my doctors. */
+
 import { pageMetadata } from "@/lib/i18n/metadata"
 import { single, type SearchParams } from "@/lib/search-params"
+
 import { BookingForm } from "./booking-form"
 
 export const generateMetadata = pageMetadata("book")

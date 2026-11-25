@@ -1,10 +1,13 @@
 "use client"
 
+/** Admin frame: SidebarShell with the admin navigation. */
+
 import { ShieldCheckIcon } from "lucide-react"
 import { useTranslations } from "next-intl"
 import type { ReactNode } from "react"
 
 import type { SessionProfile } from "@/types/next-auth"
+
 import { SidebarShell } from "./sidebar-shell"
 
 export function AdminShell({

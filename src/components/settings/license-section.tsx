@@ -1,17 +1,20 @@
 "use client"
 
+/** Settings → License (doctors): verification status and submitted documents, with a link to resubmit. */
+
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 
+import { StatusChip } from "@/components/common/status-chip"
 import { DetailList, Panel } from "@/components/page/panel"
-import { StatusChip } from "@/components/status-chip"
 import { openProtectedFile } from "@/lib/api/protected-file"
-import { useFormat } from "@/lib/i18n/use-labels"
 import { useErrorText } from "@/lib/i18n/use-error-text"
+import { useFormat } from "@/lib/i18n/use-labels"
 import { cn } from "@/lib/utils"
 import type { DoctorVerification } from "@/types/api"
 
+/** Chip color for a verification status (null = never submitted). */
 export function verificationTone(status: DoctorVerification["status"]) {
   return status === "approved"
     ? "success"

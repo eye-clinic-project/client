@@ -1,3 +1,12 @@
+/**
+ * AI analyses of fundus images (/analysis) and the doctor's review of each result.
+ *
+ * Lifecycle: createAnalysis (upload) → backend processes it
+ * (pending → processing → completed | failed) → doctor saves a review.
+ */
+
+import { HttpError } from "@/lib/api/request"
+import { defineMutation, defineQuery } from "@/lib/query/define"
 import type {
   AiHealth,
   Analysis,
@@ -6,7 +15,7 @@ import type {
   Paginated,
   Review,
 } from "@/types/api"
-import { api } from "./api"
+
 import { listTags } from "./tags"
 
 export interface AnalysisListParams {
@@ -26,69 +35,79 @@ export interface ReviewPayload {
   followUpDate?: string
 }
 
-export const analysisApi = api.injectEndpoints({
-  endpoints: (build) => ({
-    listAnalyses: build.query<Paginated<Analysis>, AnalysisListParams>({
-      query: (params) => ({ url: "/analysis", params }),
-      providesTags: (result) => listTags("Analysis", result),
-    }),
-    getAnalysis: build.query<Analysis, string>({
-      query: (id) => `/analysis/${id}`,
-      providesTags: (_result, _error, id) => [{ type: "Analysis", id }],
-    }),
-    getAiHealth: build.query<AiHealth, void>({
-      query: () => "/analysis/health",
-      providesTags: ["AiHealth"],
-    }),
-    createAnalysis: build.mutation<Analysis | null, FormData>({
-      query: (body) => ({ url: "/analysis", method: "POST", body }),
-      invalidatesTags: [{ type: "Analysis", id: "LIST" }],
-    }),
-    retryAnalysis: build.mutation<Analysis | null, string>({
-      query: (id) => ({ url: `/analysis/${id}/retry`, method: "POST" }),
-      invalidatesTags: (_result, _error, id) => [
-        { type: "Analysis", id },
-        { type: "Analysis", id: "LIST" },
-      ],
-    }),
-    deleteAnalysis: build.mutation<void, string>({
-      query: (id) => ({ url: `/analysis/${id}`, method: "DELETE" }),
-      invalidatesTags: [{ type: "Analysis", id: "LIST" }],
-    }),
-    getReview: build.query<Review | null, string>({
-      async queryFn(id, _api, _extra, baseQuery) {
-        const result = await baseQuery(`/analysis/${id}/review`)
-        if (result.error?.status === 404) return { data: null }
-        if (result.error) return { error: result.error }
-        return { data: result.data as Review }
-      },
-      providesTags: (_result, _error, id) => [{ type: "Review", id }],
-    }),
-    saveReview: build.mutation<
-      Review,
-      { analysisId: string; exists: boolean; body: ReviewPayload }
-    >({
-      query: ({ analysisId, exists, body }) => ({
-        url: `/analysis/${analysisId}/review`,
-        method: exists ? "PATCH" : "POST",
-        body,
-      }),
-      invalidatesTags: (_result, _error, { analysisId }) => [
-        { type: "Review", id: analysisId },
-        { type: "Analysis", id: analysisId },
-        { type: "Analysis", id: "LIST" },
-      ],
-    }),
-  }),
+export const useListAnalysesQuery = defineQuery<
+  Paginated<Analysis>,
+  AnalysisListParams
+>({
+  name: "listAnalyses",
+  query: (params) => ({ url: "/analysis", params }),
+  providesTags: (data) => listTags("Analysis", data),
 })
 
-export const {
-  useListAnalysesQuery,
-  useGetAnalysisQuery,
-  useGetAiHealthQuery,
-  useCreateAnalysisMutation,
-  useRetryAnalysisMutation,
-  useDeleteAnalysisMutation,
-  useGetReviewQuery,
-  useSaveReviewMutation,
-} = analysisApi
+export const useGetAnalysisQuery = defineQuery<Analysis, string>({
+  name: "getAnalysis",
+  query: (id) => `/analysis/${id}`,
+  providesTags: (_data, id) => [{ type: "Analysis", id }],
+})
+
+// Status of the AI service (shown so doctors know if uploads will be processed).
+export const useGetAiHealthQuery = defineQuery<AiHealth, void>({
+  name: "getAiHealth",
+  query: () => "/analysis/health",
+  providesTags: ["AiHealth"],
+})
+
+export const useCreateAnalysisMutation = defineMutation<
+  Analysis | null,
+  FormData
+>({
+  query: (body) => ({ url: "/analysis", method: "POST", body }),
+  invalidatesTags: [{ type: "Analysis", id: "LIST" }],
+})
+
+// Re-queue a failed analysis.
+export const useRetryAnalysisMutation = defineMutation<Analysis | null, string>(
+  {
+    query: (id) => ({ url: `/analysis/${id}/retry`, method: "POST" }),
+    invalidatesTags: (_result, id) => [
+      { type: "Analysis", id },
+      { type: "Analysis", id: "LIST" },
+    ],
+  }
+)
+
+export const useDeleteAnalysisMutation = defineMutation<void, string>({
+  query: (id) => ({ url: `/analysis/${id}`, method: "DELETE" }),
+  invalidatesTags: [{ type: "Analysis", id: "LIST" }],
+})
+
+// A 404 means "not reviewed yet", which is a normal state → return null.
+export const useGetReviewQuery = defineQuery<Review | null, string>({
+  name: "getReview",
+  async queryFn(id, request) {
+    try {
+      return await request<Review>(`/analysis/${id}/review`)
+    } catch (error) {
+      if (error instanceof HttpError && error.status === 404) return null
+      throw error
+    }
+  },
+  providesTags: (_data, id) => [{ type: "Review", id }],
+})
+
+// Creates (POST) or updates (PATCH) the review depending on `exists`.
+export const useSaveReviewMutation = defineMutation<
+  Review,
+  { analysisId: string; exists: boolean; body: ReviewPayload }
+>({
+  query: ({ analysisId, exists, body }) => ({
+    url: `/analysis/${analysisId}/review`,
+    method: exists ? "PATCH" : "POST",
+    body,
+  }),
+  invalidatesTags: (_result, { analysisId }) => [
+    { type: "Review", id: analysisId },
+    { type: "Analysis", id: analysisId },
+    { type: "Analysis", id: "LIST" },
+  ],
+})

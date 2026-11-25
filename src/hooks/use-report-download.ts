@@ -1,11 +1,13 @@
 "use client"
 
+/** Downloads a report PDF with a safe file name. `pendingId` is the id being downloaded (for spinners). */
+
 import { toast } from "sonner"
 
+import { downloadBlob } from "@/lib/format"
 import { useErrorText } from "@/lib/i18n/use-error-text"
-import { useDownloadReportMutation } from "@/service/report.service"
+import { useDownloadReportMutation } from "@/services/report.service"
 import type { Report } from "@/types/api"
-import { downloadBlob } from "@/util/format"
 
 export function useReportDownload() {
   const errorText = useErrorText()
@@ -15,6 +17,7 @@ export function useReportDownload() {
       const blob = await download(report._id).unwrap()
       downloadBlob(
         blob,
+        // Strip characters that are invalid in file names.
         `${report.title.replace(/[\\/:*?"<>|]+/g, " ").trim() || "report"}.pdf`
       )
     } catch (caught) {

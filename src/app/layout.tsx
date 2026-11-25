@@ -1,3 +1,13 @@
+/**
+ * Root layout (server component) — wraps every page.
+ *
+ * - Reads the session and locale in parallel.
+ * - Sets <html lang> and dir (rtl for Arabic).
+ * - Loads fonts and global CSS.
+ * - Mounts NextIntlClientProvider (translations) and AppProviders
+ *   (session, UI/query/chat contexts, theme, toasts).
+ */
+
 import type { Metadata } from "next"
 import { Geist_Mono, Inter } from "next/font/google"
 import { NextIntlClientProvider } from "next-intl"
@@ -16,6 +26,7 @@ const fontMono = Geist_Mono({
   variable: "--font-mono",
 })
 
+/** Default <title>/description; pages add their own title via pageMetadata(). */
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("meta")
   return {

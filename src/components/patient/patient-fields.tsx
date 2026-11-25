@@ -1,5 +1,7 @@
 "use client"
 
+/** The shared input fields of the patient form (create and edit), bound to react-hook-form. */
+
 import { useTranslations } from "next-intl"
 import type { Control, FieldPath, FieldValues } from "react-hook-form"
 
@@ -16,6 +18,7 @@ export function PatientFields<T extends FieldValues, TOut extends FieldValues>({
   withEmail: boolean
 }) {
   const t = useTranslations("patients.form")
+  // Lets one set of fields work with both create and update form types.
   const field = (name: keyof CreatePatientInput) => name as FieldPath<T>
   return (
     <div className="flex flex-col gap-4">

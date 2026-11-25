@@ -1,5 +1,11 @@
 "use client"
 
+/**
+ * Notifications inbox shared by doctors and patients: All/Unread tabs, grouped
+ * into Today/Earlier, mark read, mark all read, delete, and "load more".
+ * Clicking a notification marks it read and opens the related page (notificationRoute).
+ */
+
 import {
   BellIcon,
   CalendarDaysIcon,
@@ -22,19 +28,20 @@ import { SectionHeading } from "@/components/page/panel"
 import { EmptyState, ErrorState, ListSkeleton } from "@/components/page/states"
 import { TabBar } from "@/components/page/tab-bar"
 import { Button } from "@/components/ui/button"
+import { sameDay } from "@/lib/dates"
+import { useErrorText } from "@/lib/i18n/use-error-text"
 import { useFormat } from "@/lib/i18n/use-labels"
 import { notificationRoute } from "@/lib/notification-link"
-import { useErrorText } from "@/lib/i18n/use-error-text"
 import { cn } from "@/lib/utils"
 import {
   useDeleteNotificationMutation,
   useListNotificationsQuery,
   useMarkAllNotificationsReadMutation,
   useMarkNotificationReadMutation,
-} from "@/service/notification.service"
+} from "@/services/notification.service"
 import type { AppNotification, NotificationType, Role } from "@/types/api"
-import { sameDay } from "@/util/dates"
 
+// Icon and color per notification type.
 const ICONS: Record<NotificationType, { icon: LucideIcon; className: string }> =
   {
     analysis: { icon: ScanEyeIcon, className: "bg-danger-soft text-danger" },
@@ -70,6 +77,7 @@ export function NotificationsView({ role }: { role: Exclude<Role, "admin"> }) {
   const format = useFormat()
   const errorText = useErrorText()
   const [tab, setTab] = useState<"all" | "unread">("all")
+  // "Load more" grows the page size instead of paging, so the list stays one query.
   const [size, setSize] = useState(PAGE_SIZE)
   const { data, isLoading, isError, refetch, isFetching } =
     useListNotificationsQuery({

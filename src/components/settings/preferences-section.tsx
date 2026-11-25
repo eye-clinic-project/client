@@ -1,13 +1,19 @@
 "use client"
 
+/** Settings → Preferences: language and theme. The language choice is also saved to the account. */
+
 import { useTranslations } from "next-intl"
 import { useEffect, useRef } from "react"
 
-import { LanguageRadio, useChangeLanguage } from "@/components/language-select"
+import {
+  LanguageRadio,
+  useChangeLanguage,
+} from "@/components/common/language-select"
+import { ThemeToggle } from "@/components/common/theme-toggle"
 import { Panel } from "@/components/page/panel"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { useUpdateMeMutation } from "@/service/user.service"
+import { useUpdateMeMutation } from "@/services/user.service"
 import type { User } from "@/types/api"
+
 import { SettingsRow } from "./settings-row"
 
 export function PreferencesSection({ me }: { me: User }) {
@@ -16,6 +22,7 @@ export function PreferencesSection({ me }: { me: User }) {
   const [updateMe] = useUpdateMeMutation()
   const saved = useRef(me.language)
 
+  // Save the language to the account whenever it changes (skip if already saved).
   useEffect(() => {
     if (saved.current === language) return
     saved.current = language

@@ -1,11 +1,15 @@
+/** Analysis forms: uploading a fundus image, and the doctor's review of an AI result. */
+
 import { z } from "zod"
 
 import { vm } from "@/lib/i18n/validation"
+
 import { optionalText } from "./common.schema"
 
 export const FUNDUS_TYPES = ["image/jpeg", "image/png", "image/webp"]
 export const MAX_FUNDUS_BYTES = 10 * 1024 * 1024
 
+/** Upload form → multipart FormData body for POST /analysis. */
 export const createAnalysisSchema = z
   .object({
     patientId: z.string().min(1, vm("patientRequired")),
@@ -46,6 +50,10 @@ export const createAnalysisSchema = z
 
 export type CreateAnalysisInput = z.input<typeof createAnalysisSchema>
 
+/**
+ * Doctor review. Radio-style choices start as null (nothing picked), so
+ * superRefine turns null into a "required" error, and transform builds the API body.
+ */
 export const reviewSchema = z
   .object({
     aiResultConfirmed: z.boolean({ error: vm("agreementRequired") }).nullable(),

@@ -1,5 +1,7 @@
 "use client"
 
+/** Accessible tab buttons (role=tablist) for switching list filters; generic over the tab id type. */
+
 import { cn } from "@/lib/utils"
 
 export interface TabItem<T extends string> {

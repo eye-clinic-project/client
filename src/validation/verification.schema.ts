@@ -1,3 +1,5 @@
+/** Doctor license submission → multipart FormData for PUT /doctor/me/verification. */
+
 import { z } from "zod"
 
 import { licenseDocuments, requiredText } from "./common.schema"

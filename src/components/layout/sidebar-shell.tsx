@@ -1,5 +1,11 @@
 "use client"
 
+/**
+ * Generic app frame used by every role: sidebar navigation (with badges), user card,
+ * sign-out, optional banner, and a collapsible menu on small screens.
+ * Role shells (admin/doctor/patient-shell.tsx) only build the nav items.
+ */
+
 import { LogOutIcon, MenuIcon, XIcon, type LucideIcon } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -7,12 +13,13 @@ import { useTranslations } from "next-intl"
 import { useId, useState, type ReactNode } from "react"
 
 import { Logo } from "@/components/brand/logo"
-import { LanguageSelect } from "@/components/language-select"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { UserAvatar } from "@/components/user-avatar"
+import { LanguageSelect } from "@/components/common/language-select"
+import { ThemeToggle } from "@/components/common/theme-toggle"
+import { UserAvatar } from "@/components/common/user-avatar"
 import { useSignOut } from "@/hooks/use-sign-out"
 import { cn } from "@/lib/utils"
 
+/** One sidebar link. `badge` shows a count (hidden when 0/undefined). */
 export interface ShellNavItem {
   href: string
   label: string
@@ -85,6 +92,7 @@ export function SidebarShell({
   const [open, setOpen] = useState(false)
   const { signOut, pending } = useSignOut()
   const close = () => setOpen(false)
+  // The home link is active only on itself; other links also on their sub-pages.
   const isActive = (href: string) =>
     href === home ? pathname === href : pathname.startsWith(href)
 

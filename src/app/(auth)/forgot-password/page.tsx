@@ -1,5 +1,7 @@
 "use client"
 
+/** /forgot-password — request a password reset code by email, then go to /reset-password. */
+
 import { zodResolver } from "@hookform/resolvers/zod"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -11,7 +13,7 @@ import { FormAlert } from "@/components/form/form-alert"
 import { SubmitButton } from "@/components/form/submit-button"
 import { TextField } from "@/components/form/text-field"
 import { useErrorText } from "@/lib/i18n/use-error-text"
-import { useForgotPasswordMutation } from "@/service/auth.service"
+import { useForgotPasswordMutation } from "@/services/auth.service"
 import { emailSchema } from "@/validation/auth.schema"
 
 export default function ForgotPasswordPage() {

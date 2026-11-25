@@ -1,21 +1,29 @@
 "use client"
 
+/**
+ * Patients page with two views:
+ * - "My patients": paged, searchable list of assigned patients
+ * - "Find patients": search all patients and assign them (PatientAssignCombobox)
+ * plus the "Add patient" panel to create a new patient account.
+ */
+
 import { PlusIcon, ScanEyeIcon, UsersIcon } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
 
+import { UserAvatar } from "@/components/common/user-avatar"
 import { PageHeader } from "@/components/page/page-header"
 import { Pagination } from "@/components/page/pagination"
 import { SearchInput } from "@/components/page/search-input"
 import { EmptyState, ErrorState, ListSkeleton } from "@/components/page/states"
 import { TabBar } from "@/components/page/tab-bar"
 import { Button } from "@/components/ui/button"
-import { UserAvatar } from "@/components/user-avatar"
 import { useDebounced } from "@/hooks/use-debounced"
 import { ageFrom, useFormat } from "@/lib/i18n/use-labels"
-import { useListPatientsQuery } from "@/service/patient.service"
+import { useListPatientsQuery } from "@/services/patient.service"
+
 import { AddPatientPanel } from "./add-patient-panel"
 import { PatientAssignCombobox } from "./patient-assign-combobox"
 
@@ -88,6 +96,7 @@ export function PatientsView({
   )
 }
 
+/** Assigned patients table with search and paging. */
 function MyPatients({
   initialSearch,
   onAdd,
@@ -253,6 +262,7 @@ function MyPatients({
   )
 }
 
+/** Search the whole system to assign an existing patient. */
 function FindPatients() {
   return (
     <div className="pt-80">

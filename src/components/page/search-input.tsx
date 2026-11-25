@@ -1,5 +1,7 @@
 "use client"
 
+/** Search box with icon and accessible label. Debounce the value with useDebounced() before querying. */
+
 import { SearchIcon } from "lucide-react"
 import { useId } from "react"
 

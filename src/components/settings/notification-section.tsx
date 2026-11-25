@@ -1,5 +1,7 @@
 "use client"
 
+/** Settings → Notifications: turn browser push notifications on or off for this device. */
+
 import { useTranslations } from "next-intl"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -7,6 +9,7 @@ import { toast } from "sonner"
 import { Panel } from "@/components/page/panel"
 import { Switch } from "@/components/ui/switch"
 import { usePushNotifications } from "@/hooks/use-push-notifications"
+
 import { SettingsRow } from "./settings-row"
 
 export function NotificationSection({ role }: { role: "doctor" | "patient" }) {

@@ -1,5 +1,13 @@
 "use client"
 
+/**
+ * /complete-profile — last step for new Google users: the backend needs a city.
+ *
+ * Calls `update({ kind: "complete-google", city })`, which finishes the Google
+ * sign-up inside the Auth.js jwt callback (auth.ts). proxy.ts keeps the user on
+ * this page until it succeeds. "Cancel" signs out.
+ */
+
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter } from "next/navigation"
 import { signOut, useSession } from "next-auth/react"

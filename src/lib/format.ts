@@ -1,3 +1,11 @@
+/**
+ * Plain formatting helpers that don't need React.
+ *
+ * Note: the English-only helpers below (greeting, formatDate/Time/…, EYE_LABEL,
+ * APPOINTMENT_STATUS_LABEL, stage1Summary, analysisStatus) predate translations.
+ * For UI text prefer the translated versions in lib/i18n/use-labels.ts.
+ */
+
 import type {
   Analysis,
   AppointmentStatus,
@@ -5,6 +13,7 @@ import type {
   Language,
 } from "@/types/api"
 
+/** Avatar initials: first + last name letters, ignoring a leading "Dr.". */
 export function initials(name: string | undefined | null): string {
   if (!name) return "?"
   const parts = name
@@ -120,6 +129,7 @@ export const APPOINTMENT_STATUS_LABEL: Record<AppointmentStatus, string> = {
   completed: "Completed",
 }
 
+/** Color tone used by StatusChip and badges. */
 export type Tone = "neutral" | "info" | "success" | "warning" | "danger"
 
 export function stage1Summary(analysis: Analysis): {
@@ -158,6 +168,7 @@ export function analysisStatus(analysis: Analysis): {
   return { label: "Needs review", tone: "warning" }
 }
 
+/** Saves a Blob as a file by clicking a temporary <a download> link. */
 export function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement("a")
@@ -167,6 +178,7 @@ export function downloadBlob(blob: Blob, filename: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 1_000)
 }
 
+/** Human file size: KB below 1 MB, otherwise MB with one decimal. */
 export function formatBytes(bytes: number | null | undefined): string {
   if (!bytes) return "0 KB"
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`

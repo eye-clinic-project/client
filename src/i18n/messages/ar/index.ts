@@ -1,3 +1,9 @@
+/**
+ * All translation namespaces for "ar", loaded by i18n/request.ts.
+ * Arabic must have the same namespaces and keys as i18n/messages/en.
+ * To add a namespace: create <name>.json here and in the other language, then register it below.
+ */
+
 import type en from "../en"
 import admin from "./admin.json"
 import analyses from "./analyses.json"
@@ -17,22 +23,22 @@ import validation from "./validation.json"
 import verification from "./verification.json"
 
 const messages: typeof en = {
-  "admin": admin,
-  "analyses": analyses,
-  "appointments": appointments,
-  "auth": auth,
-  "chat": chat,
-  "common": common,
-  "dashboard": dashboard,
-  "meta": meta,
-  "notifications": notifications,
-  "patient": patient,
-  "patients": patients,
-  "reports": reports,
-  "settings": settings,
-  "shell": shell,
-  "validation": validation,
-  "verification": verification,
+  admin: admin,
+  analyses: analyses,
+  appointments: appointments,
+  auth: auth,
+  chat: chat,
+  common: common,
+  dashboard: dashboard,
+  meta: meta,
+  notifications: notifications,
+  patient: patient,
+  patients: patients,
+  reports: reports,
+  settings: settings,
+  shell: shell,
+  validation: validation,
+  verification: verification,
 }
 
 export default messages

@@ -1,19 +1,24 @@
 "use client"
 
+/**
+ * Accessible combobox to search every patient (from 3 characters) and assign one.
+ * Already-assigned results just open the patient. Keyboard: ↑/↓ to move, Enter to choose, Esc to close.
+ */
+
 import { CheckIcon, Loader2Icon, SearchIcon, UserPlusIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react"
 import { toast } from "sonner"
 
-import { UserAvatar } from "@/components/user-avatar"
+import { UserAvatar } from "@/components/common/user-avatar"
 import { useDebounced } from "@/hooks/use-debounced"
 import { useErrorText } from "@/lib/i18n/use-error-text"
 import { cn } from "@/lib/utils"
 import {
   useAssignPatientMutation,
   useSearchAllPatientsQuery,
-} from "@/service/doctor.service"
+} from "@/services/doctor.service"
 import type { PatientSearchResult } from "@/types/api"
 
 export function PatientAssignCombobox() {
@@ -38,6 +43,7 @@ export function PatientAssignCombobox() {
   const results = ready ? (data?.docs ?? []) : []
   const expanded = open && search.trim().length > 0
 
+  // Close the list when clicking outside of it.
   useEffect(() => {
     const close = (event: PointerEvent) => {
       if (!root.current?.contains(event.target as Node)) setOpen(false)

@@ -1,5 +1,7 @@
 "use client"
 
+/** Inline preview of a protected PDF (loaded with the access token via useProtectedFile). */
+
 import { useTranslations } from "next-intl"
 
 import { Skeleton } from "@/components/ui/skeleton"

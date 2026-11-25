@@ -1,5 +1,10 @@
 "use client"
 
+/**
+ * Patient home dashboard: next appointment, latest reports, assigned doctors,
+ * unread notifications, and the push-notifications prompt.
+ */
+
 import {
   BellIcon,
   CalendarPlusIcon,
@@ -12,18 +17,18 @@ import { useTranslations } from "next-intl"
 import { useMemo } from "react"
 
 import { appointmentTone } from "@/components/appointment/appointment-tone"
+import { StatusChip } from "@/components/common/status-chip"
+import { UserAvatar } from "@/components/common/user-avatar"
 import { PushPrompt } from "@/components/layout/push-prompt"
 import { PageHeader } from "@/components/page/page-header"
 import { Panel } from "@/components/page/panel"
-import { StatusChip } from "@/components/status-chip"
 import { Skeleton } from "@/components/ui/skeleton"
-import { UserAvatar } from "@/components/user-avatar"
+import { firstName } from "@/lib/format"
 import { useFormat, useGreeting } from "@/lib/i18n/use-labels"
-import { useListMyAppointmentsQuery } from "@/service/appointment.service"
-import { useListMyDoctorsQuery } from "@/service/doctor.service"
-import { useGetUnreadCountQuery } from "@/service/notification.service"
-import { useListReportsQuery } from "@/service/report.service"
-import { firstName } from "@/util/format"
+import { useListMyAppointmentsQuery } from "@/services/appointment.service"
+import { useListMyDoctorsQuery } from "@/services/doctor.service"
+import { useGetUnreadCountQuery } from "@/services/notification.service"
+import { useListReportsQuery } from "@/services/report.service"
 
 const linkClass = "text-[13px] font-semibold text-brand hover:text-brand-strong"
 

@@ -1,4 +1,7 @@
+/** /reset-password?email=… — enter the emailed code and a new password. */
+
 import { pageMetadata } from "@/lib/i18n/metadata"
+
 import { ResetPasswordForm } from "./reset-password-form"
 
 export const generateMetadata = pageMetadata("resetPassword")

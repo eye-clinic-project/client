@@ -1,5 +1,12 @@
 "use client"
 
+/**
+ * Standard list/page states:
+ * - EmptyState: nothing to show (optional action)
+ * - ErrorState: loading failed, with a retry button
+ * - ListSkeleton: placeholder rows while loading
+ */
+
 import { CircleAlertIcon, InboxIcon, type LucideIcon } from "lucide-react"
 import { useTranslations } from "next-intl"
 import type { ReactNode } from "react"

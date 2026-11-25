@@ -1,5 +1,10 @@
 "use client"
 
+/**
+ * Doctor frame: SidebarShell with doctor navigation, badges, and the license
+ * verification gate (unapproved doctors only see a few pages + a status banner).
+ */
+
 import {
   BellIcon,
   CalendarDaysIcon,
@@ -16,15 +21,16 @@ import { usePathname, useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useEffect, type ReactNode } from "react"
 
-import { useListAnalysesQuery } from "@/service/analysis.service"
-import { useListMyAppointmentsQuery } from "@/service/appointment.service"
-import { useListConversationsQuery } from "@/service/chat.service"
+import { useListAnalysesQuery } from "@/services/analysis.service"
+import { useListMyAppointmentsQuery } from "@/services/appointment.service"
+import { useListConversationsQuery } from "@/services/chat.service"
 import {
   useGetMyClinicQuery,
   useGetMyVerificationQuery,
-} from "@/service/doctor.service"
-import { useGetUnreadCountQuery } from "@/service/notification.service"
+} from "@/services/doctor.service"
+import { useGetUnreadCountQuery } from "@/services/notification.service"
 import type { SessionProfile } from "@/types/next-auth"
+
 import { LicenseDraftUploader } from "./license-draft-uploader"
 import { SidebarShell, type ShellNavItem } from "./sidebar-shell"
 
@@ -65,10 +71,12 @@ export function DoctorShell({
   const locked = !approved && !verificationFailed
   const blocked = locked && !openWhilePending(pathname)
 
+  // Opened a locked page: send the doctor to the verification page.
   useEffect(() => {
     if (blocked && verification) router.replace(VERIFICATION_ROUTE)
   }, [blocked, router, verification])
   const { data: clinic } = useGetMyClinicQuery()
+  // Badge counts: `size: 1` because we only need the total `count`.
   const { data: toReview } = useListAnalysesQuery(
     { reviewed: false, status: "completed", size: 1 },
     { skip: !approved }

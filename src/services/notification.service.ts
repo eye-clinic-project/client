@@ -1,38 +1,46 @@
-import type { AppNotification, NotificationPage } from "@/types/api"
-import { api } from "./api"
+/**
+ * In-app notifications (/notification). New ones arrive via push, which
+ * invalidates the "Notification" tag (see use-push-notifications).
+ */
 
-export const notificationApi = api.injectEndpoints({
-  endpoints: (build) => ({
-    listNotifications: build.query<
-      NotificationPage,
-      { unread?: boolean; page?: number; size?: number }
-    >({
-      query: (params) => ({ url: "/notification", params }),
-      providesTags: [{ type: "Notification", id: "LIST" }],
-    }),
-    getUnreadCount: build.query<{ unreadCount: number }, void>({
-      query: () => "/notification/unread-count",
-      providesTags: [{ type: "Notification", id: "COUNT" }],
-    }),
-    markNotificationRead: build.mutation<AppNotification, string>({
-      query: (id) => ({ url: `/notification/${id}/read`, method: "PATCH" }),
-      invalidatesTags: ["Notification"],
-    }),
-    markAllNotificationsRead: build.mutation<{ updated: number }, void>({
-      query: () => ({ url: "/notification/read-all", method: "PATCH" }),
-      invalidatesTags: ["Notification"],
-    }),
-    deleteNotification: build.mutation<void, string>({
-      query: (id) => ({ url: `/notification/${id}`, method: "DELETE" }),
-      invalidatesTags: ["Notification"],
-    }),
-  }),
+import { defineMutation, defineQuery } from "@/lib/query/define"
+import type { AppNotification, NotificationPage } from "@/types/api"
+
+export const useListNotificationsQuery = defineQuery<
+  NotificationPage,
+  { unread?: boolean; page?: number; size?: number }
+>({
+  name: "listNotifications",
+  query: (params) => ({ url: "/notification", params }),
+  providesTags: [{ type: "Notification", id: "LIST" }],
 })
 
-export const {
-  useListNotificationsQuery,
-  useGetUnreadCountQuery,
-  useMarkNotificationReadMutation,
-  useMarkAllNotificationsReadMutation,
-  useDeleteNotificationMutation,
-} = notificationApi
+export const useGetUnreadCountQuery = defineQuery<
+  { unreadCount: number },
+  void
+>({
+  name: "getUnreadCount",
+  query: () => "/notification/unread-count",
+  providesTags: [{ type: "Notification", id: "COUNT" }],
+})
+
+export const useMarkNotificationReadMutation = defineMutation<
+  AppNotification,
+  string
+>({
+  query: (id) => ({ url: `/notification/${id}/read`, method: "PATCH" }),
+  invalidatesTags: ["Notification"],
+})
+
+export const useMarkAllNotificationsReadMutation = defineMutation<
+  { updated: number },
+  void
+>({
+  query: () => ({ url: "/notification/read-all", method: "PATCH" }),
+  invalidatesTags: ["Notification"],
+})
+
+export const useDeleteNotificationMutation = defineMutation<void, string>({
+  query: (id) => ({ url: `/notification/${id}`, method: "DELETE" }),
+  invalidatesTags: ["Notification"],
+})

@@ -1,3 +1,12 @@
+/**
+ * Turns a notification's backend link into a page in this app for the current role.
+ *
+ * Backend links look like API paths (`/analysis/123`, `/report/9`, …). RULES maps
+ * each shape to the right page per role; if nothing matches we fall back to a
+ * page based on the notification type. Used by the notifications list and by
+ * /open (push clicks).
+ */
+
 import type { NotificationType, Role } from "@/types/api"
 
 type Rule = {
@@ -5,6 +14,7 @@ type Rule = {
   route: (role: Role, id: string) => string | null
 }
 
+// Checked in order; the first rule that matches and returns a route wins.
 const RULES: Rule[] = [
   {
     pattern: /^\/analysis\/([^/?#]+)/,
@@ -53,8 +63,10 @@ const RULES: Rule[] = [
   },
 ]
 
+// A link that is already an app route (e.g. "/doctor/patients").
 const APP_ROUTE = /^\/(doctor|patient|admin)(\/|$|\?)/
 
+/** Where to go when the link is missing or unknown: based on notification type. */
 function fallback(
   role: Role,
   type?: NotificationType,
@@ -86,6 +98,12 @@ function fallback(
   return type ? routes[type] : `/${role}/notifications`
 }
 
+/**
+ * @param role        current user's role
+ * @param link        backend link (absolute URLs are reduced to their path)
+ * @param type        notification type, used for the fallback
+ * @param resourceId  id of the related item, used for the fallback
+ */
 export function notificationRoute(
   role: Role,
   link?: string | null,

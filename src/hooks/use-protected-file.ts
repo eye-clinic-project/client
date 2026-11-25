@@ -1,5 +1,10 @@
 "use client"
 
+/**
+ * Loads a protected file (needs the access token) and returns a temporary object URL
+ * for <img>/<iframe>. The URL is revoked when `path` changes or the component unmounts.
+ */
+
 import { useEffect, useState } from "react"
 
 import { fetchProtectedFile } from "@/lib/api/protected-file"
@@ -42,6 +47,7 @@ export function useProtectedFile(path: string | null | undefined) {
   }, [path])
 
   if (!path) return IDLE
+  // Stored result is for a previous path: we're loading the new one.
   if (state.path !== path)
     return { status: "loading", url: null, type: null } as State
   return state.value

@@ -1,5 +1,10 @@
 "use client"
 
+/**
+ * Text input bound to react-hook-form: label, optional description/label action,
+ * and a translated error message. Generic over the form's input/output types.
+ */
+
 import type { ReactNode } from "react"
 import {
   Controller,

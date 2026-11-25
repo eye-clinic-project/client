@@ -1,3 +1,13 @@
+/**
+ * Keeps a doctor's license files in the browser (IndexedDB) between sign-up and
+ * the first sign-in.
+ *
+ * Doctors can't upload their license until they have a session, but they pick
+ * the files on the sign-up form. We save them here keyed by email, and
+ * LicenseDraftUploader submits them after the first sign-in, then deletes them.
+ * All functions swallow errors: a lost draft only means the doctor re-uploads.
+ */
+
 const DATABASE = "retinacare"
 const STORE = "license-drafts"
 
@@ -8,6 +18,7 @@ export interface LicenseDraft {
   savedAt: number
 }
 
+/** Opens (and on first use creates) the IndexedDB database. */
 function open(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DATABASE, 1)
@@ -19,6 +30,7 @@ function open(): Promise<IDBDatabase> {
   })
 }
 
+/** Runs one request in its own transaction and closes the database afterwards. */
 async function run<T>(
   mode: IDBTransactionMode,
   action: (store: IDBObjectStore) => IDBRequest<T>
@@ -37,6 +49,7 @@ async function run<T>(
   }
 }
 
+// Emails are case-insensitive, so normalize the key.
 const key = (email: string) => email.trim().toLowerCase()
 
 export async function saveLicenseDraft(

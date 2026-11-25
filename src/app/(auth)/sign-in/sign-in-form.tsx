@@ -1,5 +1,11 @@
 "use client"
 
+/**
+ * Sign-in form. Calls Auth.js `signIn("credentials")` without redirect so we can
+ * handle errors here: unverified accounts go to /verify-email (and a new code is
+ * sent), other errors are shown as translated messages.
+ */
+
 import { zodResolver } from "@hookform/resolvers/zod"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -12,7 +18,10 @@ import { GoogleButton } from "@/components/auth/google-button"
 import { FormAlert } from "@/components/form/form-alert"
 import { SubmitButton } from "@/components/form/submit-button"
 import { TextField } from "@/components/form/text-field"
-import { signInErrorCode, type SignInErrorCode } from "@/util/auth-messages"
+import {
+  signInErrorCode,
+  type SignInErrorCode,
+} from "@/lib/auth/sign-in-errors"
 import { signInSchema } from "@/validation/auth.schema"
 
 interface SignInFormProps {
@@ -45,6 +54,7 @@ export function SignInForm({
 
     if (!result?.error) {
       router.replace(callbackUrl ?? "/")
+      // Re-render server components with the new session.
       router.refresh()
       return
     }

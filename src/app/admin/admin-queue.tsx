@@ -1,26 +1,33 @@
 "use client"
 
+/**
+ * Admin queue: doctors grouped by verification state (tabs), with search and
+ * paging; selecting one opens DoctorReview beside the list (full screen on small screens).
+ */
+
 import { ShieldCheckIcon } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
 
+import { StatusChip } from "@/components/common/status-chip"
+import { UserAvatar } from "@/components/common/user-avatar"
 import { PageHeader } from "@/components/page/page-header"
 import { Pagination } from "@/components/page/pagination"
 import { SearchInput } from "@/components/page/search-input"
 import { EmptyState, ErrorState, ListSkeleton } from "@/components/page/states"
 import { TabBar } from "@/components/page/tab-bar"
 import { verificationTone } from "@/components/settings/license-section"
-import { StatusChip } from "@/components/status-chip"
-import { UserAvatar } from "@/components/user-avatar"
 import { useDebounced } from "@/hooks/use-debounced"
 import { useFormat } from "@/lib/i18n/use-labels"
 import { cn } from "@/lib/utils"
 import {
   useListAdminDoctorsQuery,
   type AdminDoctorListParams,
-} from "@/service/admin.service"
+} from "@/services/admin.service"
+
 import { DoctorReview } from "./doctor-review"
 
+// Tabs → API filters. "waiting" = submitted and not decided yet.
 const QUEUES = {
   waiting: { status: "pending", submitted: true },
   notSubmitted: { submitted: false },
@@ -43,10 +50,12 @@ export function AdminQueue({ initialId }: { initialId: string | null }) {
   const term = useDebounced(search.trim(), 300)
   const { data, isLoading, isError, refetch } = useListAdminDoctorsQuery({
     ...QUEUES[queue],
+    // Search only from 2 characters on.
     search: term.length >= 2 ? term : undefined,
     page,
     size: SIZE,
   })
+  // Count for the "waiting" tab badge (size 1: only `count` is needed).
   const { data: waiting } = useListAdminDoctorsQuery({
     ...QUEUES.waiting,
     size: 1,

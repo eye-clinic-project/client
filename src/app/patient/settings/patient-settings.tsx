@@ -1,5 +1,10 @@
 "use client"
 
+/**
+ * Patient settings page: loads the account and medical record, then renders each
+ * section (profile, medical info, notifications, security, preferences).
+ */
+
 import { LogOutIcon } from "lucide-react"
 import { useTranslations } from "next-intl"
 
@@ -15,8 +20,8 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useSignOut } from "@/hooks/use-sign-out"
 import { useFormat } from "@/lib/i18n/use-labels"
-import { useGetMyPatientRecordQuery } from "@/service/patient.service"
-import { useGetMeQuery } from "@/service/user.service"
+import { useGetMyPatientRecordQuery } from "@/services/patient.service"
+import { useGetMeQuery } from "@/services/user.service"
 
 export function PatientSettings() {
   const t = useTranslations("settings")

@@ -1,49 +1,56 @@
 "use client"
 
+/**
+ * Owns the chat socket connection for doctor and patient areas (mounted in their layouts).
+ *
+ * - Connects when there is an access token, reconnects when it changes,
+ *   disconnects when it's cleared (sign-out).
+ * - Feeds socket events into the chat context and refreshes the conversation list
+ *   (unread counts) through query tags.
+ * - Re-joins the open conversation after a reconnect.
+ */
+
 import { useEffect, type ReactNode } from "react"
 
+import { useChatActions } from "@/contexts/chat-context"
 import { tokenStore } from "@/lib/auth/token-store"
-import { useAppDispatch, useAppStore } from "@/redux/hooks"
-import {
-  chatReset,
-  messageReceived,
-  messagesRead,
-  socketStatusChanged,
-  typingChanged,
-} from "@/redux/slices/chat.slice"
-import { api } from "@/service/api"
+import { useQueryClient } from "@/lib/query/provider"
+import type { ChatMessage } from "@/types/api"
+
 import {
   chatSocket,
   type ReadEvent,
   type TypingEvent,
   type WsError,
 } from "./chat.socket"
-import type { ChatMessage } from "@/types/api"
 
 export function ChatSocketProvider({ children }: { children: ReactNode }) {
-  const dispatch = useAppDispatch()
-  const store = useAppStore()
+  const chat = useChatActions()
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     const socket = chatSocket()
 
     const onConnect = () => {
-      dispatch(socketStatusChanged("connected"))
-      const active = store.getState().chat.activeConversationId
+      chat.socketStatusChanged("connected")
+      const active = chat.getState().activeConversationId
       if (active)
         socket.emit("join_conversation", { conversationId: active }, () => {})
     }
-    const onDisconnect = () => dispatch(socketStatusChanged("disconnected"))
-    const onConnectError = () => dispatch(socketStatusChanged("error"))
+    const refreshConversations = () =>
+      queryClient.invalidateTags([{ type: "Conversation", id: "LIST" }])
+    const onDisconnect = () => chat.socketStatusChanged("disconnected")
+    const onConnectError = () => chat.socketStatusChanged("error")
     const onMessage = (message: ChatMessage) => {
-      dispatch(messageReceived(message))
-      dispatch(api.util.invalidateTags([{ type: "Conversation", id: "LIST" }]))
+      chat.messageReceived(message)
+      refreshConversations()
     }
-    const onTyping = (event: TypingEvent) => dispatch(typingChanged(event))
+    const onTyping = (event: TypingEvent) => chat.typingChanged(event)
     const onRead = (event: ReadEvent) => {
-      dispatch(messagesRead(event))
-      dispatch(api.util.invalidateTags([{ type: "Conversation", id: "LIST" }]))
+      chat.messagesRead(event)
+      refreshConversations()
     }
+    // Server says our token is invalid → refresh it; the token change triggers a reconnect.
     const onException = (error: WsError) => {
       if (error.statusCode === 401) void tokenStore.forceRefresh()
     }
@@ -56,10 +63,11 @@ export function ChatSocketProvider({ children }: { children: ReactNode }) {
     socket.on("read", onRead)
     socket.on("exception", onException)
 
+    // (Re)connect with a new token, or stay disconnected when signed out.
     const connectWith = (token: string | undefined) => {
       if (socket.connected || socket.active) socket.disconnect()
       if (!token) return
-      dispatch(socketStatusChanged("connecting"))
+      chat.socketStatusChanged("connecting")
       socket.connect()
     }
 
@@ -76,9 +84,9 @@ export function ChatSocketProvider({ children }: { children: ReactNode }) {
       socket.off("read", onRead)
       socket.off("exception", onException)
       socket.disconnect()
-      dispatch(chatReset())
+      chat.reset()
     }
-  }, [dispatch, store])
+  }, [chat, queryClient])
 
   return children
 }

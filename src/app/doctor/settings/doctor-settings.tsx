@@ -1,5 +1,7 @@
 "use client"
 
+/** Doctor settings page: loads the account, clinic and verification, then renders each settings section. */
+
 import { useTranslations } from "next-intl"
 
 import { PageHeader } from "@/components/page/page-header"
@@ -15,8 +17,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import {
   useGetMyClinicQuery,
   useGetMyVerificationQuery,
-} from "@/service/doctor.service"
-import { useGetMeQuery } from "@/service/user.service"
+} from "@/services/doctor.service"
+import { useGetMeQuery } from "@/services/user.service"
 
 export function DoctorSettings() {
   const t = useTranslations("settings")

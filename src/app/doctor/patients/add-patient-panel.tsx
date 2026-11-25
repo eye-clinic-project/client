@@ -1,5 +1,7 @@
 "use client"
 
+/** Form to create a new patient account, assigned to this doctor. */
+
 import { zodResolver } from "@hookform/resolvers/zod"
 import { XIcon } from "lucide-react"
 import { useTranslations } from "next-intl"
@@ -12,7 +14,7 @@ import { SubmitButton } from "@/components/form/submit-button"
 import { PatientFields } from "@/components/patient/patient-fields"
 import { Button } from "@/components/ui/button"
 import { useErrorText } from "@/lib/i18n/use-error-text"
-import { useCreateClinicPatientMutation } from "@/service/doctor.service"
+import { useCreateClinicPatientMutation } from "@/services/doctor.service"
 import type { Patient } from "@/types/api"
 import { createPatientSchema, EMPTY_PATIENT } from "@/validation/patient.schema"
 

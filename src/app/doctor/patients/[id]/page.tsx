@@ -1,4 +1,7 @@
+/** /doctor/patients/[id] — one patient's record, history, reports, visits and notes. */
+
 import { pageMetadata } from "@/lib/i18n/metadata"
+
 import { PatientDetail } from "./patient-detail"
 
 export const generateMetadata = pageMetadata("patient")

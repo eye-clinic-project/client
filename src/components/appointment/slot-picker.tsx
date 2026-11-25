@@ -1,14 +1,19 @@
 "use client"
 
+/**
+ * Patient-side picker: choose a day (next 14 days), then a free time slot of a doctor.
+ * Booked and already-past slots are hidden. Used for booking and rescheduling.
+ */
+
 import { useTranslations } from "next-intl"
 import { useMemo, useState } from "react"
 
 import { Skeleton } from "@/components/ui/skeleton"
+import { addDays, sameDay, toDateInput } from "@/lib/dates"
 import { useFormat } from "@/lib/i18n/use-labels"
 import { cn } from "@/lib/utils"
-import { useListDoctorSlotsQuery } from "@/service/appointment.service"
+import { useListDoctorSlotsQuery } from "@/services/appointment.service"
 import type { Slot } from "@/types/api"
-import { addDays, sameDay, toDateInput } from "@/util/dates"
 
 const DAYS = 14
 
@@ -35,6 +40,7 @@ export function SlotPicker({
     doctorId,
     date: toDateInput(day),
   })
+  // Only slots that are still free and haven't started yet.
   const slots = (data ?? []).filter(
     (slot) => !slot.isBooked && new Date(slot.startAt) > new Date()
   )

@@ -1,5 +1,7 @@
 "use client"
 
+/** My visits, split into Upcoming and Past tabs, with paging. */
+
 import {
   CalendarCheckIcon,
   CalendarPlusIcon,
@@ -10,13 +12,13 @@ import { useTranslations } from "next-intl"
 import { useMemo, useState } from "react"
 
 import { appointmentTone } from "@/components/appointment/appointment-tone"
+import { StatusChip } from "@/components/common/status-chip"
 import { PageHeader } from "@/components/page/page-header"
 import { Pagination } from "@/components/page/pagination"
 import { EmptyState, ErrorState, ListSkeleton } from "@/components/page/states"
 import { TabBar } from "@/components/page/tab-bar"
-import { StatusChip } from "@/components/status-chip"
 import { useFormat } from "@/lib/i18n/use-labels"
-import { useListMyAppointmentsQuery } from "@/service/appointment.service"
+import { useListMyAppointmentsQuery } from "@/services/appointment.service"
 
 const SIZE = 10
 
@@ -26,6 +28,7 @@ export function VisitsView() {
   const format = useFormat()
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming")
   const [page, setPage] = useState(1)
+  // "Now" fixed at mount so the query arguments (and cache key) don't change every render.
   const now = useMemo(() => new Date().toISOString(), [])
   const params = tab === "upcoming" ? { from: now } : { to: now }
   const { data, isLoading, isError, refetch } = useListMyAppointmentsQuery({

@@ -1,5 +1,7 @@
 "use client"
 
+/** Multi-line version of TextField, bound to react-hook-form. */
+
 import type { ReactNode } from "react"
 import {
   Controller,

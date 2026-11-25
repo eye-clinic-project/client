@@ -1,5 +1,7 @@
 "use client"
 
+/** 6-digit one-time code input bound to react-hook-form (email verification, password reset). */
+
 import { REGEXP_ONLY_DIGITS } from "input-otp"
 import {
   Controller,
@@ -7,7 +9,6 @@ import {
   type FieldPath,
   type FieldValues,
 } from "react-hook-form"
-
 import { useTranslations } from "next-intl"
 
 import { FormFieldError } from "@/components/form/form-error"

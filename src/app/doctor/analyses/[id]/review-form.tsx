@@ -1,5 +1,11 @@
 "use client"
 
+/**
+ * Doctor's review of an AI result: agree/disagree, confirmed DR level (0–4),
+ * notes, recommendations and follow-up date. Creates or updates the review, and
+ * can create/open the report for this analysis.
+ */
+
 import { zodResolver } from "@hookform/resolvers/zod"
 import { LockIcon } from "lucide-react"
 import Link from "next/link"
@@ -15,15 +21,15 @@ import { TextareaField } from "@/components/form/textarea-field"
 import { Panel } from "@/components/page/panel"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useAnalysisLabels } from "@/lib/i18n/use-labels"
 import { useErrorText } from "@/lib/i18n/use-error-text"
+import { useAnalysisLabels } from "@/lib/i18n/use-labels"
 import { cn } from "@/lib/utils"
 import {
   useGetReviewQuery,
   useSaveReviewMutation,
   type ReviewPayload,
-} from "@/service/analysis.service"
-import { useCreateReportMutation } from "@/service/report.service"
+} from "@/services/analysis.service"
+import { useCreateReportMutation } from "@/services/report.service"
 import type { Analysis, DrLevel, Report, Review } from "@/types/api"
 import { reviewSchema, type ReviewInput } from "@/validation/analysis.schema"
 
@@ -41,6 +47,7 @@ export function ReviewForm({
   const { data: review, isLoading } = useGetReviewQuery(analysis._id)
   if (isLoading) return <Skeleton className="h-80 w-full rounded-none" />
   return (
+    // `key` re-creates the form when the saved review loads/changes, so default values refresh.
     <ReviewFormBody
       key={review?._id ?? "new"}
       analysis={analysis}

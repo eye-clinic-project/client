@@ -1,30 +1,37 @@
 "use client"
 
+/**
+ * Doctor home: greeting, summary cards (to review / DR found / processing / failed),
+ * a filterable review queue, and today's appointments.
+ * Everything is skipped until the doctor is approved (the API would answer 403).
+ */
+
 import { BellIcon, SearchIcon, UploadIcon } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useMemo, useState, type FormEvent, type ReactNode } from "react"
 
+import { StatusChip } from "@/components/common/status-chip"
 import { PushPrompt } from "@/components/layout/push-prompt"
-import { StatusChip } from "@/components/status-chip"
 import { Skeleton } from "@/components/ui/skeleton"
-import { cn } from "@/lib/utils"
+import { endOfDay, firstName, startOfDay } from "@/lib/format"
 import {
   useAnalysisLabels,
   useFormat,
   useGreeting,
 } from "@/lib/i18n/use-labels"
+import { cn } from "@/lib/utils"
 import {
   useGetAiHealthQuery,
   useListAnalysesQuery,
   type AnalysisListParams,
-} from "@/service/analysis.service"
-import { useListMyAppointmentsQuery } from "@/service/appointment.service"
-import { useGetMyVerificationQuery } from "@/service/doctor.service"
-import { useGetUnreadCountQuery } from "@/service/notification.service"
-import { endOfDay, firstName, startOfDay } from "@/util/format"
+} from "@/services/analysis.service"
+import { useListMyAppointmentsQuery } from "@/services/appointment.service"
+import { useGetMyVerificationQuery } from "@/services/doctor.service"
+import { useGetUnreadCountQuery } from "@/services/notification.service"
 
+// Review-queue filter buttons → analysis list filters.
 const QUEUE_FILTERS = {
   pending: {
     label: "filterPending",
@@ -76,11 +83,13 @@ export function DoctorDashboard({ name }: { name: string }) {
   const { data: verification } = useGetMyVerificationQuery()
   const skip = verification?.status !== "approved"
 
+  // Today's range, computed once so query arguments stay stable.
   const today = useMemo(
     () => ({ from: startOfDay().toISOString(), to: endOfDay().toISOString() }),
     []
   )
 
+  // Counters for the summary cards (size 1 → only `count` is used).
   const { data: pending } = useListAnalysesQuery(
     { ...QUEUE_FILTERS.pending.params, size: 1 },
     { skip }

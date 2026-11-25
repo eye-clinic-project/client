@@ -1,3 +1,11 @@
+/**
+ * Extends Auth.js types with our session fields.
+ *
+ * - Session (visible to the client): accessToken, profile, error, needsCity
+ * - JWT (server-only cookie):       also refreshToken and pendingGoogle
+ * - User (sign-in result):          carries the backend session into jwt()
+ */
+
 import "next-auth"
 import "@auth/core/jwt"
 
@@ -24,6 +32,11 @@ export interface PendingGoogleSignIn {
   idToken: string
 }
 
+/**
+ * - RefreshTokenError:  refresh token rejected → user must sign in again
+ * - RefreshUnavailable: backend unreachable during refresh → retried later
+ * - GoogleSignInError:  finishing a Google sign-up failed
+ */
 export type SessionError =
   "RefreshTokenError" | "RefreshUnavailable" | "GoogleSignInError"
 

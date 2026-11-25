@@ -1,3 +1,23 @@
+/**
+ * Auth.js (next-auth v5) configuration — the server side of the session.
+ *
+ * The backend issues an access token + refresh token. We keep both, plus a cached
+ * user profile, inside Auth.js's encrypted JWT cookie, so:
+ * - server code reads them with `auth()`,
+ * - the browser only ever receives `session.accessToken` (see SessionBridge).
+ *
+ * Flow overview:
+ * - Credentials sign-in → POST /authentication/sign-in → load /user/me → store.
+ * - Google sign-in → exchange Google id_token at POST /authentication/google.
+ *   New Google users without a city are parked as `pendingGoogle` until they
+ *   finish /complete-profile.
+ * - Every request runs the `jwt` callback, which refreshes the access token
+ *   when it is close to expiring.
+ * - Sign-out revokes the refresh token on the backend.
+ *
+ * See docs/02-auth-and-session.md for diagrams.
+ */
+
 import NextAuth, { CredentialsSignin } from "next-auth"
 import type { JWT } from "next-auth/jwt"
 import Credentials from "next-auth/providers/credentials"
@@ -18,13 +38,20 @@ import {
   tokenPairSchema,
 } from "@/validation/session.schema"
 
+// Exact backend message meaning "this Google user must pick a city first".
 const CITY_REQUIRED = "City is required to create an account"
+// Cookie lifetime = backend refresh-token lifetime (15 days).
 const REFRESH_TTL_SECONDS = 15 * 24 * 60 * 60
 
+/** Google sign-in is optional: only on when both OAuth env vars are set. */
 export const googleEnabled = Boolean(
   process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET
 )
 
+/**
+ * Carries a short error code (e.g. "invalid", "disabled") back to the sign-in
+ * page as `?code=`. The page turns it into a translated message.
+ */
 class BackendSignInError extends CredentialsSignin {
   constructor(code: string) {
     super()
@@ -32,6 +59,11 @@ class BackendSignInError extends CredentialsSignin {
   }
 }
 
+/**
+ * The user's UI language, read from the `language` cookie, so backend
+ * messages come back in the right language. Falls back to English when there
+ * is no request context.
+ */
 async function requestLanguage(): Promise<Language> {
   try {
     return (await cookies()).get("language")?.value === "ar" ? "ar" : "en"
@@ -40,6 +72,7 @@ async function requestLanguage(): Promise<Language> {
   }
 }
 
+/** Fetches /user/me and keeps only the fields the session needs. */
 async function loadProfile(
   accessToken: string,
   language: Language
@@ -58,6 +91,7 @@ async function loadProfile(
   }
 }
 
+/** Validates a backend token pair and computes when the access token expires. */
 function tokenFields(pair: TokenPair) {
   const tokens = tokenPairSchema.parse(pair)
   return {
@@ -70,6 +104,7 @@ function tokenFields(pair: TokenPair) {
   }
 }
 
+/** Turns a fresh token pair into everything we store in the session cookie. */
 async function openSession(
   pair: TokenPair,
   language: Language
@@ -78,6 +113,7 @@ async function openSession(
   return { ...tokens, profile: await loadProfile(tokens.accessToken, language) }
 }
 
+/** Trades a Google id_token for backend tokens (city is needed only for new users). */
 function exchangeGoogle(idToken: string, city?: string): Promise<TokenPair> {
   return serverApi<TokenPair>("/authentication/google", {
     method: "POST",
@@ -86,6 +122,7 @@ function exchangeGoogle(idToken: string, city?: string): Promise<TokenPair> {
   })
 }
 
+/** Maps backend HTTP errors from email/password sign-in to sign-in page codes. */
 function credentialsErrorCode(error: unknown): string {
   if (!(error instanceof ApiError)) return "unavailable"
   switch (error.status) {
@@ -104,6 +141,7 @@ function credentialsErrorCode(error: unknown): string {
   }
 }
 
+/** Same as above, for Google sign-in. */
 function googleErrorCode(error: unknown): string {
   if (!(error instanceof ApiError)) return "google_unavailable"
   switch (error.status) {
@@ -122,6 +160,14 @@ function googleErrorCode(error: unknown): string {
   }
 }
 
+/**
+ * Rotates the refresh token and returns the updated JWT.
+ *
+ * - 400/401/403: the refresh token is dead → drop tokens, mark
+ *   "RefreshTokenError" (the client signs the user out).
+ * - Anything else (network, 5xx): keep the old tokens and mark
+ *   "RefreshUnavailable" so we try again on the next request.
+ */
 async function refreshSession(token: JWT): Promise<JWT> {
   if (!token.refreshToken)
     return { profile: token.profile, error: "RefreshTokenError" }
@@ -136,6 +182,14 @@ async function refreshSession(token: JWT): Promise<JWT> {
   }
 }
 
+/**
+ * Handles `useSession().update(data)` calls from the client.
+ * `data` is validated; unknown payloads return null so the normal jwt flow runs.
+ *
+ * - complete-google: finish a pending Google sign-up with the chosen city.
+ * - refresh:         force a token refresh (e.g. after a 401).
+ * - reload-profile:  re-read /user/me after the user edits their profile.
+ */
 async function applyUpdate(token: JWT, data: unknown): Promise<JWT | null> {
   const update = sessionUpdateSchema.safeParse(data)
   if (!update.success) return null
@@ -172,6 +226,11 @@ async function applyUpdate(token: JWT, data: unknown): Promise<JWT | null> {
   }
 }
 
+/**
+ * Best-effort logout on the backend when the user signs out.
+ * The logout call needs a valid access token, so we rotate first if ours is
+ * (almost) expired. Errors are ignored: the cookie is cleared either way.
+ */
 async function revokeOnServer(token: JWT | null | undefined) {
   if (!token?.refreshToken) return
   try {
@@ -226,7 +285,10 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
       ? [Google({ authorization: { params: { prompt: "select_account" } } })]
       : []),
   ],
+  // Callbacks run on the server for every sign-in / session read.
   callbacks: {
+    // Only Google needs work here: exchange its token with our backend.
+    // Returning a string redirects to that URL (used to show an error).
     async signIn({ user, account }) {
       if (account?.provider !== "google") return true
       if (!account.id_token) return "/sign-in?error=google_invalid"
@@ -246,6 +308,11 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
         return `/sign-in?error=${googleErrorCode(error)}`
       }
     },
+    // Builds the encrypted JWT stored in the cookie. Order matters:
+    // 1. fresh sign-in → store backend session
+    // 2. Google user still needs a city → store only the pending token
+    // 3. client called update() → apply it
+    // 4. token still valid → keep it; otherwise refresh it
     async jwt({ token, user, trigger, session }) {
       if (user?.backend) return { ...user.backend }
       if (user?.pendingGoogle) return { pendingGoogle: user.pendingGoogle }
@@ -260,6 +327,8 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
         return token
       return refreshSession(token)
     },
+    // What the client can see. The refresh token is intentionally NOT copied
+    // here: it never leaves the server.
     session({ session, token }) {
       return {
         ...session,

@@ -1,3 +1,5 @@
+/** Admin area layout: role guard + admin frame. (No chat/push for admins.) */
+
 import { AdminShell } from "@/components/layout/admin-shell"
 import { requireRole } from "@/lib/auth/require-role"
 

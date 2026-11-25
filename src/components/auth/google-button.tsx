@@ -1,5 +1,10 @@
 "use client"
 
+/**
+ * "Continue with Google" button. Starts the Auth.js Google flow; the backend
+ * exchange happens in auth.ts. Only rendered when Google is configured (googleEnabled).
+ */
+
 import { Loader2Icon } from "lucide-react"
 import { signIn } from "next-auth/react"
 import { useTranslations } from "next-intl"

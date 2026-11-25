@@ -1,5 +1,10 @@
 "use client"
 
+/**
+ * Report editor: title, content and recommendations, with the review it is based on.
+ * Actions: save, regenerate from the latest data, send to the patient, download PDF, delete.
+ */
+
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
   CheckCircle2Icon,
@@ -15,6 +20,8 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 
+import { PdfPreview } from "@/components/common/pdf-preview"
+import { StatusChip } from "@/components/common/status-chip"
 import { FormAlert } from "@/components/form/form-alert"
 import { SubmitButton } from "@/components/form/submit-button"
 import { TextField } from "@/components/form/text-field"
@@ -22,21 +29,19 @@ import { TextareaField } from "@/components/form/textarea-field"
 import { ConfirmDialog } from "@/components/page/confirm-dialog"
 import { Panel } from "@/components/page/panel"
 import { ErrorState } from "@/components/page/states"
-import { PdfPreview } from "@/components/pdf-preview"
-import { StatusChip } from "@/components/status-chip"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useReportDownload } from "@/hooks/use-report-download"
-import { useFormat } from "@/lib/i18n/use-labels"
 import { useErrorText } from "@/lib/i18n/use-error-text"
-import { useGetReviewQuery } from "@/service/analysis.service"
+import { useFormat } from "@/lib/i18n/use-labels"
+import { useGetReviewQuery } from "@/services/analysis.service"
 import {
   useDeleteReportMutation,
   useGetReportQuery,
   useRegenerateReportMutation,
   useSendReportMutation,
   useUpdateReportMutation,
-} from "@/service/report.service"
+} from "@/services/report.service"
 import type { Report } from "@/types/api"
 import { reportSchema } from "@/validation/report.schema"
 
@@ -46,6 +51,7 @@ export function ReportEditor({ id }: { id: string }) {
   if (isLoading) return <Skeleton className="h-96 w-full rounded-none" />
   if (isError || !report)
     return <ErrorState message={t("notFound")} onRetry={refetch} />
+  // `key` resets the form state when another report is opened.
   return <ReportEditorBody key={report._id} report={report} />
 }
 

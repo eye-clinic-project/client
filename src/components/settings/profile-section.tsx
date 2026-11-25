@@ -1,5 +1,10 @@
 "use client"
 
+/**
+ * Settings → Profile: name, city and profile photo.
+ * After a change the session profile is reloaded so the sidebar/avatar update everywhere.
+ */
+
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
@@ -8,18 +13,18 @@ import { useRef } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 
+import { UserAvatar } from "@/components/common/user-avatar"
 import { SubmitButton } from "@/components/form/submit-button"
 import { TextField } from "@/components/form/text-field"
 import { Panel } from "@/components/page/panel"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { UserAvatar } from "@/components/user-avatar"
 import { useErrorText } from "@/lib/i18n/use-error-text"
 import {
   useRemoveAvatarMutation,
   useUpdateMeMutation,
   useUploadAvatarMutation,
-} from "@/service/user.service"
+} from "@/services/user.service"
 import type { User } from "@/types/api"
 import {
   AVATAR_TYPES,
@@ -43,6 +48,7 @@ export function ProfileSection({ me }: { me: User }) {
     defaultValues: { name: me.name, city: me.city },
   })
 
+  // Refresh the profile cached in the session cookie, then re-render server components.
   const reload = async () => {
     await update({ kind: "reload-profile" })
     router.refresh()
@@ -59,6 +65,7 @@ export function ProfileSection({ me }: { me: User }) {
     }
   })
 
+  // Avatar upload: type/size are checked here because it's not a Zod form.
   const onFile = async (file: File | undefined) => {
     if (!file) return
     if (!AVATAR_TYPES.includes(file.type)) return toast.error(tv("avatarType"))

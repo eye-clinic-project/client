@@ -1,21 +1,32 @@
 "use client"
 
+/**
+ * Web push (Firebase Cloud Messaging) for this browser.
+ *
+ * - usePushRegistration(): mounted once per role area (PushRegistrar). Registers
+ *   the device silently when permission was already granted, and handles
+ *   messages while the app is open (refresh data + show a toast).
+ * - usePushNotifications(): enable/disable switch for settings and the prompt.
+ *
+ * localStorage keeps the registered token (avoid re-registering) and an opt-out flag
+ * (so a user who turned push off isn't re-registered on next visit).
+ */
+
 import { deleteToken, getToken, onMessage } from "firebase/messaging"
 import { useCallback, useEffect } from "react"
 import { toast } from "sonner"
 
+import { useUi } from "@/contexts/ui-context"
 import {
   firebaseMessaging,
   SERVICE_WORKER_PATH,
   vapidKey,
 } from "@/lib/firebase"
-import { useAppDispatch, useAppSelector } from "@/redux/hooks"
+import { useQueryClient } from "@/lib/query/provider"
 import {
-  pushPermissionChanged,
-  pushSubscriptionChanged,
-} from "@/redux/slices/ui.slice"
-import { api } from "@/service/api"
-import { userApi } from "@/service/user.service"
+  useRegisterDeviceMutation,
+  useUnregisterDeviceMutation,
+} from "@/services/user.service"
 
 const DEVICE_TOKEN_KEY = "retinacare.deviceToken"
 const OPT_OUT_KEY = "retinacare.pushOptOut"
@@ -50,14 +61,16 @@ function storeDeviceToken(token: string | null) {
   } catch {}
 }
 
+/** Deletes this browser's FCM token (on sign-out or when disabling push). */
 export async function releaseDeviceToken() {
   const messaging = await firebaseMessaging()
   if (messaging) await deleteToken(messaging).catch(() => false)
   storeDeviceToken(null)
 }
 
+/** Registers the service worker, gets an FCM token and sends it to the backend if new. */
 function useRegister() {
-  const dispatch = useAppDispatch()
+  const queryClient = useQueryClient()
 
   const register = useCallback(async () => {
     const messaging = await firebaseMessaging()
@@ -73,77 +86,85 @@ function useRegister() {
     if (!token) return false
 
     if (token !== storedDeviceToken()) {
-      await dispatch(
-        userApi.endpoints.registerDevice.initiate({ token, platform: "web" })
-      ).unwrap()
+      await useRegisterDeviceMutation.execute(queryClient, {
+        token,
+        platform: "web",
+      })
       storeDeviceToken(token)
     }
     return true
-  }, [dispatch])
+  }, [queryClient])
   return register
 }
 
 export function usePushNotifications() {
-  const dispatch = useAppDispatch()
+  const queryClient = useQueryClient()
   const register = useRegister()
-  const permission = useAppSelector((state) => state.ui.pushPermission)
-  const subscribed = useAppSelector((state) => state.ui.pushSubscribed)
+  const {
+    pushPermission: permission,
+    pushSubscribed: subscribed,
+    setPushPermission,
+    setPushSubscribed,
+  } = useUi()
 
   const enable = useCallback(async () => {
     if (typeof Notification === "undefined") return false
     const result = await Notification.requestPermission()
-    dispatch(pushPermissionChanged(result))
+    setPushPermission(result)
     if (result !== "granted") return false
     setOptOut(false)
     const registered = await register().catch(() => false)
-    dispatch(pushSubscriptionChanged(registered))
+    setPushSubscribed(registered)
     return registered
-  }, [dispatch, register])
+  }, [register, setPushPermission, setPushSubscribed])
 
   const disable = useCallback(async () => {
     setOptOut(true)
     const token = storedDeviceToken()
     if (token)
-      await dispatch(userApi.endpoints.unregisterDevice.initiate({ token }))
+      await useUnregisterDeviceMutation
+        .execute(queryClient, { token })
+        .catch(() => undefined)
     await releaseDeviceToken()
-    dispatch(pushSubscriptionChanged(false))
-  }, [dispatch])
+    setPushSubscribed(false)
+  }, [queryClient, setPushSubscribed])
 
   return { permission, subscribed, enable, disable }
 }
 
 export function usePushRegistration() {
-  const dispatch = useAppDispatch()
+  const queryClient = useQueryClient()
+  const { setPushPermission, setPushSubscribed } = useUi()
   const register = useRegister()
 
   useEffect(() => {
     if (typeof Notification === "undefined" || !vapidKey()) {
-      dispatch(pushPermissionChanged("unsupported"))
+      setPushPermission("unsupported")
       return
     }
-    dispatch(pushPermissionChanged(Notification.permission))
+    setPushPermission(Notification.permission)
     if (Notification.permission === "granted" && !optedOut()) {
       void register().then(
-        (registered) => dispatch(pushSubscriptionChanged(registered)),
-        () => dispatch(pushSubscriptionChanged(false))
+        (registered) => setPushSubscribed(registered),
+        () => setPushSubscribed(false)
       )
     }
-  }, [dispatch, register])
+  }, [register, setPushPermission, setPushSubscribed])
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined
     let cancelled = false
     void firebaseMessaging().then((messaging) => {
       if (!messaging || cancelled) return
+      // Foreground message (app is open). Refresh the data it is about, then toast.
+      // Background messages are shown by public/firebase-messaging-sw.js instead.
       unsubscribe = onMessage(messaging, (payload) => {
-        dispatch(api.util.invalidateTags(["Notification"]))
+        queryClient.invalidateTags(["Notification"])
         const type = payload.data?.type
-        if (type === "appointment")
-          dispatch(api.util.invalidateTags(["Appointment"]))
-        if (type === "analysis") dispatch(api.util.invalidateTags(["Analysis"]))
-        if (type === "report") dispatch(api.util.invalidateTags(["Report"]))
-        if (type === "message")
-          dispatch(api.util.invalidateTags(["Conversation"]))
+        if (type === "appointment") queryClient.invalidateTags(["Appointment"])
+        if (type === "analysis") queryClient.invalidateTags(["Analysis"])
+        if (type === "report") queryClient.invalidateTags(["Report"])
+        if (type === "message") queryClient.invalidateTags(["Conversation"])
         if (payload.notification?.title) {
           toast(payload.notification.title, {
             description: payload.notification.body,
@@ -155,5 +176,5 @@ export function usePushRegistration() {
       cancelled = true
       unsubscribe?.()
     }
-  }, [dispatch])
+  }, [queryClient])
 }

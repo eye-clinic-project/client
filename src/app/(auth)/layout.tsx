@@ -1,9 +1,15 @@
+/**
+ * Layout for the public auth pages (route group "(auth)": adds no URL segment).
+ * Left: brand panel with product highlights (hidden on small screens).
+ * Right: theme + language switches and the page's form.
+ */
+
 import { CalendarDaysIcon, FileCheck2Icon, ScanEyeIcon } from "lucide-react"
 import { getTranslations } from "next-intl/server"
 
 import { Logo } from "@/components/brand/logo"
-import { LanguageSelect } from "@/components/language-select"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { LanguageSelect } from "@/components/common/language-select"
+import { ThemeToggle } from "@/components/common/theme-toggle"
 
 export default async function AuthLayout({
   children,
@@ -11,6 +17,7 @@ export default async function AuthLayout({
   children: React.ReactNode
 }) {
   const t = await getTranslations("auth.panel")
+
   const features = [
     { icon: ScanEyeIcon, text: t("featureDetection") },
     { icon: FileCheck2Icon, text: t("featureReports") },
@@ -21,7 +28,7 @@ export default async function AuthLayout({
     <div className="flex min-h-svh flex-wrap bg-background text-foreground">
       <section className="flex min-w-0 flex-[1_1_520px] flex-col justify-between gap-12 bg-brand-panel px-6 py-10 text-white max-md:hidden sm:px-16 sm:py-14">
         <Logo tone="light" />
-        <div className="flex max-w-[520px] flex-col gap-5">
+        <div className="flex max-w-130 flex-col gap-5">
           <h1 className="text-[44px] leading-[1.15] font-semibold tracking-[-0.02em]">
             {t("headline")}
           </h1>
@@ -43,9 +50,8 @@ export default async function AuthLayout({
       </section>
 
       <section className="flex min-w-0 flex-[1_1_520px] items-center justify-center px-4 py-12 sm:px-6">
-        <div className="flex w-full max-w-[440px] flex-col gap-7">
+        <div className="flex w-full max-w-110 flex-col gap-7">
           <div className="flex items-center justify-between gap-4 md:justify-end">
-            <Logo size="sm" className="md:hidden" />
             <div className="flex items-center gap-2">
               <ThemeToggle />
               <LanguageSelect />

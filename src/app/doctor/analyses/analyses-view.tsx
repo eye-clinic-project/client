@@ -1,18 +1,24 @@
 "use client"
 
+/**
+ * Analyses list: tabs (all / needs review / DR / failed), status and result
+ * filters, paging, retry for failed ones, and the AI service panel.
+ * Polls quickly while anything is queued or processing so new results appear by themselves.
+ */
+
 import { PlusIcon, RotateCcwIcon, ScanEyeIcon } from "lucide-react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
 import { toast } from "sonner"
 
+import { StatusChip } from "@/components/common/status-chip"
+import { UserAvatar } from "@/components/common/user-avatar"
 import { FilterSelect } from "@/components/form/select-field"
 import { PageHeader } from "@/components/page/page-header"
 import { Pagination } from "@/components/page/pagination"
 import { EmptyState, ErrorState, ListSkeleton } from "@/components/page/states"
 import { TabBar } from "@/components/page/tab-bar"
-import { StatusChip } from "@/components/status-chip"
-import { UserAvatar } from "@/components/user-avatar"
 import { useErrorText } from "@/lib/i18n/use-error-text"
 import { useAnalysisLabels, useFormat } from "@/lib/i18n/use-labels"
 import {
@@ -20,13 +26,15 @@ import {
   useListAnalysesQuery,
   useRetryAnalysisMutation,
   type AnalysisListParams,
-} from "@/service/analysis.service"
+} from "@/services/analysis.service"
 import type { AnalysisStatus } from "@/types/api"
+
 import { AiServicePanel } from "./ai-service-panel"
 import { Stage1Cell } from "./stage1-cell"
 
 type Tab = "all" | "review" | "dr" | "failed"
 
+// Tab → API filters.
 const TAB_FILTER: Record<Tab, AnalysisListParams> = {
   all: {},
   review: { status: "completed", reviewed: false },
@@ -53,6 +61,7 @@ export function AnalysesView() {
   const [retrying, setRetrying] = useState<string | null>(null)
 
   const health = useGetAiHealthQuery(undefined, { pollingInterval: 60_000 })
+  // How many analyses are still running → decides the polling speed.
   const processing = useListAnalysesQuery(
     { status: "processing", size: 1 },
     { pollingInterval: IDLE_POLL_MS }

@@ -1,11 +1,17 @@
 "use client"
 
+/**
+ * Drag-and-drop / click-to-browse file input with a removable file list.
+ * Controlled: `files` + `onChange`. With `max={1}` a new file replaces the old one.
+ * Validation (type/size) is done by the form's Zod schema, not here.
+ */
+
 import { FileIcon, ImageIcon, UploadCloudIcon, XIcon } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useId, useRef, useState, type DragEvent } from "react"
 
+import { formatBytes } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import { formatBytes } from "@/util/format"
 
 interface FileDropProps {
   files: File[]

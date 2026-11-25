@@ -1,3 +1,10 @@
+/**
+ * Layout building blocks for content sections:
+ * - Panel: bordered card with a title bar and optional actions
+ * - SectionHeading: small uppercase heading
+ * - DetailList: label/value rows (definition list)
+ */
+
 import type { ReactNode } from "react"
 
 import { cn } from "@/lib/utils"

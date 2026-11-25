@@ -1,3 +1,5 @@
+/** One settings row: title + hint on the left, control on the right. */
+
 import type { ReactNode } from "react"
 
 export function SettingsRow({

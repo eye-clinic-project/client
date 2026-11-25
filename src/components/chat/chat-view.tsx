@@ -1,22 +1,33 @@
 "use client"
 
+/**
+ * Two-pane messages page shared by doctors and patients:
+ * conversation list on the left, the open conversation (ChatThread) on the right.
+ *
+ * - The open conversation is kept in the URL (`?c=<id>`) so links/notifications can open it.
+ * - `startWithUserId` (e.g. "Message patient" button) creates or reuses a conversation once.
+ * - On mobile only one pane is visible at a time.
+ */
+
 import { ArrowLeftIcon, MessageSquareIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useEffect, useMemo, useRef, useState } from "react"
 
+import { UserAvatar } from "@/components/common/user-avatar"
 import { SearchInput } from "@/components/page/search-input"
 import { EmptyState, ListSkeleton } from "@/components/page/states"
-import { UserAvatar } from "@/components/user-avatar"
 import { useFormat } from "@/lib/i18n/use-labels"
 import { cn } from "@/lib/utils"
 import {
   useListConversationsQuery,
   useStartConversationMutation,
-} from "@/service/chat.service"
+} from "@/services/chat.service"
 import type { Conversation, Role } from "@/types/api"
+
 import { ChatThread } from "./chat-thread"
 
+/** The other person in a conversation, from the current user's point of view. */
 function counterpart(conversation: Conversation, role: Exclude<Role, "admin">) {
   return role === "doctor" ? conversation.patient : conversation.doctor
 }
@@ -45,6 +56,7 @@ export function ChatView({
     initialConversationId ?? null
   )
   const [search, setSearch] = useState("")
+  // Guards against starting the conversation twice (React strict mode runs effects twice).
   const started = useRef(false)
 
   useEffect(() => {
@@ -62,6 +74,7 @@ export function ChatView({
   }, [basePath, router, startConversation, startWithUserId])
 
   const other = (conversation: Conversation) => counterpart(conversation, role)
+  // Most recent conversation first, filtered by the other person's name.
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase()
     const list = [...(conversations ?? [])].sort((a, b) =>

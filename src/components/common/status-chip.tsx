@@ -1,7 +1,9 @@
+/** Small colored label for statuses. Color comes from a Tone (neutral/info/success/warning/danger). */
+
 import type { ReactNode } from "react"
 
+import type { Tone } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import type { Tone } from "@/util/format"
 
 const TONE_CLASS: Record<Tone, string> = {
   neutral: "bg-muted text-muted-foreground",

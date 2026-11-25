@@ -1,5 +1,8 @@
+/** /doctor — dashboard: greeting, analysis counters, review queue, today's schedule. */
+
 import { requireRole } from "@/lib/auth/require-role"
 import { pageMetadata } from "@/lib/i18n/metadata"
+
 import { DoctorDashboard } from "./doctor-dashboard"
 
 export const generateMetadata = pageMetadata("dashboard")

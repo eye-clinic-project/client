@@ -1,5 +1,7 @@
 "use client"
 
+/** Seconds countdown (e.g. "resend code in 0:59"). Call `start()` to begin; `label` is m:ss. */
+
 import { useCallback, useEffect, useState } from "react"
 
 export function useCountdown(seconds: number) {

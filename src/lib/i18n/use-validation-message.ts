@@ -1,5 +1,10 @@
 "use client"
 
+/**
+ * Translated Zod messages, step 2: decoding + translating (see validation.ts).
+ * Unknown keys are returned as-is, which makes missing translations easy to spot.
+ */
+
 import { useTranslations } from "next-intl"
 import { useCallback } from "react"
 

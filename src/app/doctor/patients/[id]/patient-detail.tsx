@@ -1,6 +1,11 @@
 "use client"
 
-import { zodResolver } from "@hookform/resolvers/zod"
+/**
+ * Patient record page: header (MRN, age, gender, city), latest result, and tabs for
+ * analysis history, reports, visits and notes. Actions: message, new analysis,
+ * edit profile, unassign.
+ */
+
 import {
   FileTextIcon,
   MessageSquareIcon,
@@ -11,24 +16,15 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
-import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 
-import { FormAlert } from "@/components/form/form-alert"
-import { SubmitButton } from "@/components/form/submit-button"
+import { StatusChip } from "@/components/common/status-chip"
+import { UserAvatar } from "@/components/common/user-avatar"
 import { ConfirmDialog } from "@/components/page/confirm-dialog"
 import { DetailList, Panel } from "@/components/page/panel"
 import { EmptyState, ErrorState, ListSkeleton } from "@/components/page/states"
 import { TabBar } from "@/components/page/tab-bar"
-import { PatientFields } from "@/components/patient/patient-fields"
-import { StatusChip } from "@/components/status-chip"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,29 +32,23 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Skeleton } from "@/components/ui/skeleton"
-import { UserAvatar } from "@/components/user-avatar"
-import { ageFrom, useAnalysisLabels, useFormat } from "@/lib/i18n/use-labels"
+import { downloadBlob } from "@/lib/format"
 import { useErrorText } from "@/lib/i18n/use-error-text"
-import { useListAnalysesQuery } from "@/service/analysis.service"
-import { useListMyAppointmentsQuery } from "@/service/appointment.service"
-import { useStartConversationMutation } from "@/service/chat.service"
-import { useUnassignPatientMutation } from "@/service/doctor.service"
-import {
-  useGetPatientQuery,
-  useUpdatePatientMutation,
-} from "@/service/patient.service"
+import { ageFrom, useAnalysisLabels, useFormat } from "@/lib/i18n/use-labels"
+import { useListAnalysesQuery } from "@/services/analysis.service"
+import { useListMyAppointmentsQuery } from "@/services/appointment.service"
+import { useStartConversationMutation } from "@/services/chat.service"
+import { useUnassignPatientMutation } from "@/services/doctor.service"
+import { useGetPatientQuery } from "@/services/patient.service"
 import {
   useDownloadReportMutation,
   useListReportsQuery,
-} from "@/service/report.service"
-import type { Appointment, AppointmentStatus, Patient } from "@/types/api"
-import type { Tone } from "@/util/format"
-import { downloadBlob } from "@/util/format"
-import { updatePatientSchema } from "@/validation/patient.schema"
+} from "@/services/report.service"
+
+import { EditPatientDialog } from "./edit-patient-dialog"
+import { VisitList } from "./visit-list"
 
 type Tab = "history" | "reports" | "appointments" | "notes"
-
-const toDateInput = (value: string | null) => (value ? value.slice(0, 10) : "")
 
 export function PatientDetail({ id }: { id: string }) {
   const t = useTranslations("patients")
@@ -79,6 +69,7 @@ export function PatientDetail({ id }: { id: string }) {
     { patientId: id, size: 50 },
     { skip: !patient }
   )
+  // No per-patient appointment endpoint: load the doctor's appointments and filter below.
   const { data: appointments } = useListMyAppointmentsQuery(
     { size: 100 },
     { skip: !patient }
@@ -439,131 +430,5 @@ function EditButton({ onClick }: { onClick: () => void }) {
     >
       {tc("edit")}
     </button>
-  )
-}
-
-function VisitList({
-  visits,
-  compact,
-}: {
-  visits: Appointment[]
-  compact?: boolean
-}) {
-  const t = useTranslations("patients.detail")
-  const tc = useTranslations("common")
-  const format = useFormat()
-  if (visits.length === 0)
-    return <p className="text-sm text-subtle">{t("noVisits")}</p>
-  const tone = (status: AppointmentStatus): Tone =>
-    status === "confirmed"
-      ? "info"
-      : status === "completed"
-        ? "success"
-        : status === "pending"
-          ? "warning"
-          : "neutral"
-  return (
-    <ul
-      className={
-        compact
-          ? "flex flex-col gap-3"
-          : "flex flex-col border border-b-0 border-border"
-      }
-    >
-      {visits.map((visit) => (
-        <li
-          key={visit._id}
-          className={
-            compact
-              ? "flex items-start justify-between gap-3"
-              : "flex items-center justify-between gap-3 border-b border-border bg-card px-4 py-3.5"
-          }
-        >
-          <span className="flex min-w-0 flex-col gap-0.5">
-            <span className="text-sm font-semibold">
-              {format.date(visit.scheduledAt)}, {format.time(visit.scheduledAt)}
-            </span>
-            {visit.reason && (
-              <span className="truncate text-xs text-subtle">
-                {visit.reason}
-              </span>
-            )}
-          </span>
-          <StatusChip tone={tone(visit.status)}>
-            {tc(`appointmentStatus.${visit.status}`)}
-          </StatusChip>
-        </li>
-      ))}
-    </ul>
-  )
-}
-
-function EditPatientDialog({
-  patient,
-  onClose,
-}: {
-  patient: Patient
-  onClose: () => void
-}) {
-  const t = useTranslations("patients.form")
-  const tc = useTranslations("common")
-  const errorText = useErrorText()
-  const [update] = useUpdatePatientMutation()
-  const [error, setError] = useState<string | null>(null)
-  const form = useForm({
-    resolver: zodResolver(updatePatientSchema),
-    defaultValues: {
-      name: patient.user.name,
-      city: patient.user.city,
-      phone: patient.user.phone ?? "",
-      dateOfBirth: toDateInput(patient.dateOfBirth),
-      gender: patient.gender ?? ("" as const),
-      emergencyContact: patient.emergencyContact ?? "",
-      diabetesSince: patient.diabetesSince ? String(patient.diabetesSince) : "",
-      medicalNotes: patient.medicalNotes ?? "",
-    },
-  })
-
-  const onSubmit = form.handleSubmit(async (payload) => {
-    setError(null)
-    try {
-      await update({ id: patient._id, ...payload }).unwrap()
-      toast.success(t("updated"))
-      onClose()
-    } catch (caught) {
-      setError(errorText(caught))
-    }
-  })
-
-  return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[90svh] gap-5 overflow-y-auto rounded-none p-6 text-sm sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle className="text-lg font-semibold">
-            {t("editTitle")}
-          </DialogTitle>
-        </DialogHeader>
-        {error && <FormAlert>{error}</FormAlert>}
-        <form noValidate onSubmit={onSubmit} className="flex flex-col gap-5">
-          <PatientFields control={form.control} withEmail={false} />
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              className="h-11 rounded-none px-4"
-            >
-              {tc("cancel")}
-            </Button>
-            <SubmitButton
-              pending={form.formState.isSubmitting}
-              className="h-11 w-auto px-5 text-sm"
-            >
-              {tc("saveChanges")}
-            </SubmitButton>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
   )
 }

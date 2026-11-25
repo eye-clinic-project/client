@@ -1,5 +1,7 @@
 "use client"
 
+/** Email verification code form with a "resend code" countdown. Success → /sign-in?verified=1. */
+
 import { zodResolver } from "@hookform/resolvers/zod"
 import { SendIcon } from "lucide-react"
 import Link from "next/link"
@@ -17,9 +19,10 @@ import { useErrorText } from "@/lib/i18n/use-error-text"
 import {
   useSendVerificationEmailMutation,
   useVerifyEmailMutation,
-} from "@/service/auth.service"
+} from "@/services/auth.service"
 import { verifyEmailSchema } from "@/validation/auth.schema"
 
+// Wait time before the user may request another code.
 const RESEND_SECONDS = 60
 
 export function VerifyEmailForm({
@@ -53,6 +56,8 @@ export function VerifyEmailForm({
   }
 
   const { start } = countdown
+  // On arrival: either send a code now (send=1) or just start the countdown,
+  // because sign-up already sent one. The ref prevents double sending in strict mode.
   useEffect(() => {
     if (sentOnMount.current) return
     sentOnMount.current = true

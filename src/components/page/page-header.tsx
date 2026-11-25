@@ -1,3 +1,5 @@
+/** Page title row: title, optional description and action buttons. */
+
 import type { ReactNode } from "react"
 
 import { cn } from "@/lib/utils"

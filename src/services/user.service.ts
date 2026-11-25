@@ -1,48 +1,55 @@
-import type { Language, User } from "@/types/api"
-import { api } from "./api"
+/** Current user's account (/user/me): profile, avatar, push devices, log out everywhere. */
 
-export const userApi = api.injectEndpoints({
-  endpoints: (build) => ({
-    getMe: build.query<User, void>({
-      query: () => "/user/me",
-      providesTags: ["Me"],
-    }),
-    updateMe: build.mutation<
-      User,
-      Partial<{ name: string; city: string; language: Language }>
-    >({
-      query: (body) => ({ url: "/user/me", method: "PATCH", body }),
-      invalidatesTags: ["Me"],
-    }),
-    uploadAvatar: build.mutation<User, FormData>({
-      query: (body) => ({ url: "/user/me/avatar", method: "PUT", body }),
-      invalidatesTags: ["Me"],
-    }),
-    removeAvatar: build.mutation<User, void>({
-      query: () => ({ url: "/user/me/avatar", method: "DELETE" }),
-      invalidatesTags: ["Me"],
-    }),
-    logoutEverywhere: build.mutation<void, { deviceToken?: string }>({
-      query: (body) => ({
-        url: "/authentication/logout",
-        method: "POST",
-        body: { type: "all", ...body },
-      }),
-    }),
-    registerDevice: build.mutation<void, { token: string; platform: "web" }>({
-      query: (body) => ({ url: "/user/me/devices", method: "PUT", body }),
-    }),
-    unregisterDevice: build.mutation<void, { token: string }>({
-      query: (body) => ({ url: "/user/me/devices", method: "DELETE", body }),
-    }),
+import { defineMutation, defineQuery } from "@/lib/query/define"
+import type { Language, User } from "@/types/api"
+
+export const useGetMeQuery = defineQuery<User, void>({
+  name: "getMe",
+  query: () => "/user/me",
+  providesTags: ["Me"],
+})
+
+export const useUpdateMeMutation = defineMutation<
+  User,
+  Partial<{ name: string; city: string; language: Language }>
+>({
+  query: (body) => ({ url: "/user/me", method: "PATCH", body }),
+  invalidatesTags: ["Me"],
+})
+
+export const useUploadAvatarMutation = defineMutation<User, FormData>({
+  query: (body) => ({ url: "/user/me/avatar", method: "PUT", body }),
+  invalidatesTags: ["Me"],
+})
+
+export const useRemoveAvatarMutation = defineMutation<User, void>({
+  query: () => ({ url: "/user/me/avatar", method: "DELETE" }),
+  invalidatesTags: ["Me"],
+})
+
+// Revokes every session of this user. Use through `useSignOut({ everywhere: true })`.
+export const useLogoutEverywhereMutation = defineMutation<
+  void,
+  { deviceToken?: string }
+>({
+  query: (body) => ({
+    url: "/authentication/logout",
+    method: "POST",
+    body: { type: "all", ...body },
   }),
 })
 
-export const {
-  useGetMeQuery,
-  useUpdateMeMutation,
-  useUploadAvatarMutation,
-  useRemoveAvatarMutation,
-  useRegisterDeviceMutation,
-  useUnregisterDeviceMutation,
-} = userApi
+// Register/remove this browser's FCM token for push notifications.
+export const useRegisterDeviceMutation = defineMutation<
+  void,
+  { token: string; platform: "web" }
+>({
+  query: (body) => ({ url: "/user/me/devices", method: "PUT", body }),
+})
+
+export const useUnregisterDeviceMutation = defineMutation<
+  void,
+  { token: string }
+>({
+  query: (body) => ({ url: "/user/me/devices", method: "DELETE", body }),
+})

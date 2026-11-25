@@ -1,5 +1,7 @@
 "use client"
 
+/** List of the patient's doctors (clinic, specialty, contact) with shortcuts to book or message. */
+
 import {
   CalendarPlusIcon,
   MessageSquareIcon,
@@ -8,11 +10,11 @@ import {
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 
+import { UserAvatar } from "@/components/common/user-avatar"
 import { PageHeader } from "@/components/page/page-header"
 import { EmptyState, ErrorState, ListSkeleton } from "@/components/page/states"
-import { UserAvatar } from "@/components/user-avatar"
 import { useFormat } from "@/lib/i18n/use-labels"
-import { useListMyDoctorsQuery } from "@/service/doctor.service"
+import { useListMyDoctorsQuery } from "@/services/doctor.service"
 
 export function PatientDoctors() {
   const t = useTranslations("patient.doctors")

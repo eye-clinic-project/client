@@ -1,5 +1,10 @@
 "use client"
 
+/**
+ * Booking: choose one of my doctors, pick a free slot (SlotPicker), add an optional
+ * reason, and book. Success opens the new appointment.
+ */
+
 import { zodResolver } from "@hookform/resolvers/zod"
 import { CalendarPlusIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -9,6 +14,7 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 
 import { SlotPicker } from "@/components/appointment/slot-picker"
+import { UserAvatar } from "@/components/common/user-avatar"
 import { FormAlert } from "@/components/form/form-alert"
 import { FormFieldError } from "@/components/form/form-error"
 import { SubmitButton } from "@/components/form/submit-button"
@@ -17,12 +23,11 @@ import { PageHeader } from "@/components/page/page-header"
 import { Panel } from "@/components/page/panel"
 import { EmptyState, ErrorState } from "@/components/page/states"
 import { Skeleton } from "@/components/ui/skeleton"
-import { UserAvatar } from "@/components/user-avatar"
-import { useFormat } from "@/lib/i18n/use-labels"
 import { useErrorText } from "@/lib/i18n/use-error-text"
+import { useFormat } from "@/lib/i18n/use-labels"
 import { cn } from "@/lib/utils"
-import { useBookAppointmentMutation } from "@/service/appointment.service"
-import { useListMyDoctorsQuery } from "@/service/doctor.service"
+import { useBookAppointmentMutation } from "@/services/appointment.service"
+import { useListMyDoctorsQuery } from "@/services/doctor.service"
 import type { Slot } from "@/types/api"
 import { bookingSchema } from "@/validation/appointment.schema"
 
@@ -51,6 +56,7 @@ export function BookingForm({
   if (isLoading) return <Skeleton className="h-96 w-full rounded-none" />
   if (isError || !doctors) return <ErrorState onRetry={refetch} />
 
+  // Use the chosen doctor if it's one of mine, otherwise default to the first.
   const doctorId = doctors.some((doctor) => doctor._id === chosenDoctor)
     ? chosenDoctor
     : (doctors[0]?._id ?? null)

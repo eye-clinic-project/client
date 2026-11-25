@@ -1,18 +1,20 @@
 "use client"
 
+/** Paged list of sent reports with download buttons. */
+
 import { DownloadIcon, FileTextIcon } from "lucide-react"
 import Link from "next/link"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
 
+import { StatusChip } from "@/components/common/status-chip"
 import { PageHeader } from "@/components/page/page-header"
 import { Pagination } from "@/components/page/pagination"
 import { EmptyState, ErrorState, ListSkeleton } from "@/components/page/states"
-import { StatusChip } from "@/components/status-chip"
 import { Button } from "@/components/ui/button"
 import { useReportDownload } from "@/hooks/use-report-download"
 import { useFormat } from "@/lib/i18n/use-labels"
-import { useListReportsQuery } from "@/service/report.service"
+import { useListReportsQuery } from "@/services/report.service"
 
 const SIZE = 10
 

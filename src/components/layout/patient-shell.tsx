@@ -1,5 +1,7 @@
 "use client"
 
+/** Patient frame: SidebarShell with patient navigation and unread/upcoming badges. */
+
 import {
   BellIcon,
   CalendarCheckIcon,
@@ -13,9 +15,10 @@ import {
 import { useTranslations } from "next-intl"
 import type { ReactNode } from "react"
 
-import { useListConversationsQuery } from "@/service/chat.service"
-import { useGetUnreadCountQuery } from "@/service/notification.service"
+import { useListConversationsQuery } from "@/services/chat.service"
+import { useGetUnreadCountQuery } from "@/services/notification.service"
 import type { SessionProfile } from "@/types/next-auth"
+
 import { SidebarShell, type ShellNavItem } from "./sidebar-shell"
 
 export function PatientShell({

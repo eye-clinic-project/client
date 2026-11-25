@@ -1,6 +1,9 @@
+/** Settings forms: profile, clinic, password change, and avatar upload limits. */
+
 import { z } from "zod"
 
 import { vm } from "@/lib/i18n/validation"
+
 import { newPassword, optionalText, otp, requiredText } from "./common.schema"
 
 export const profileSchema = z.object({
@@ -37,6 +40,7 @@ export const clinicSchema = z
         : Number(value.yearsOfExperience),
   }))
 
+/** Password change is confirmed with a 6-digit code sent by email. */
 export const passwordChangeSchema = z
   .object({ code: otp, password: newPassword, confirmPassword: z.string() })
   .refine((value) => value.password === value.confirmPassword, {

@@ -1,6 +1,11 @@
 "use client"
 
-import { useListPatientsQuery } from "@/service/patient.service"
+/**
+ * Finds the patient record that belongs to a user reference.
+ * Some API objects only carry the user (UserRef); the patient record is looked up by email.
+ */
+
+import { useListPatientsQuery } from "@/services/patient.service"
 import type { UserRef } from "@/types/api"
 
 export function usePatientByUser(user: UserRef | null | undefined) {

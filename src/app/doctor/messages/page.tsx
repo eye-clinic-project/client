@@ -1,3 +1,8 @@
+/**
+ * /doctor/messages — chat with patients.
+ * `?c=<conversationId>` opens a conversation; `?with=<userId>` starts/opens one with that user.
+ */
+
 import { ChatView } from "@/components/chat/chat-view"
 import { requireRole } from "@/lib/auth/require-role"
 import { pageMetadata } from "@/lib/i18n/metadata"

@@ -1,3 +1,5 @@
+/** "/" has no content: send the user to their role home, or to sign-in. */
+
 import { redirect } from "next/navigation"
 
 import { auth } from "@/auth"

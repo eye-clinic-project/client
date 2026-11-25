@@ -1,3 +1,8 @@
+/**
+ * Runtime validation of auth data crossing trust boundaries:
+ * backend token/profile responses and `useSession().update()` payloads (see auth.ts).
+ */
+
 import { z } from "zod"
 
 export const tokenPairSchema = z.object({
@@ -16,6 +21,7 @@ export const profileSchema = z.object({
   language: z.enum(["en", "ar"]).nullable().optional(),
 })
 
+/** Allowed `update()` calls from the client. Anything else is ignored by auth.ts. */
 export const sessionUpdateSchema = z.union([
   z.object({
     kind: z.literal("complete-google"),

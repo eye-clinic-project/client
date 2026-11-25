@@ -1,6 +1,13 @@
+/**
+ * /verify-email?email=…[&send=1] — enter the 6-digit code sent by email.
+ * `send=1` sends a fresh code on arrival (used when sign-in finds an unverified account).
+ * Without an email there is nothing to verify → back to /sign-up.
+ */
+
 import { redirect } from "next/navigation"
 
 import { pageMetadata } from "@/lib/i18n/metadata"
+
 import { VerifyEmailForm } from "./verify-email-form"
 
 export const generateMetadata = pageMetadata("verifyEmail")

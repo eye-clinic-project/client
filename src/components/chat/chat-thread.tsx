@@ -1,27 +1,30 @@
 "use client"
 
-import {
-  FileTextIcon,
-  Loader2Icon,
-  PaperclipIcon,
-  SendIcon,
-  XIcon,
-} from "lucide-react"
+/**
+ * One open conversation: message history, live messages, typing indicator,
+ * read receipts and the message composer (text + up to 5 attachments).
+ *
+ * Messages shown = older pages (loaded on demand) + first REST page + live socket
+ * messages + optimistic "sending" ones, de-duplicated by id and sorted by time.
+ */
+
+import { Loader2Icon, PaperclipIcon, SendIcon, XIcon } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react"
 import { toast } from "sonner"
 
-import { ProtectedImage } from "@/components/protected-image"
-import { openProtectedFile } from "@/lib/api/protected-file"
-import { useFormat } from "@/lib/i18n/use-labels"
+import { useChatState } from "@/contexts/chat-context"
+import { sameDay } from "@/lib/dates"
 import { useErrorText } from "@/lib/i18n/use-error-text"
-import { cn } from "@/lib/utils"
-import { useAppDispatch, useAppSelector } from "@/redux/hooks"
-import { chatApi, useListMessagesQuery } from "@/service/chat.service"
-import { useChat } from "@/socket/use-chat"
-import type { ChatAttachment, ChatMessage, Conversation } from "@/types/api"
-import { sameDay } from "@/util/dates"
+import { useFormat } from "@/lib/i18n/use-labels"
+import { useQueryClient } from "@/lib/query/provider"
+import { useChat } from "@/lib/socket/use-chat"
+import { useListMessagesQuery } from "@/services/chat.service"
+import type { ChatMessage, Conversation } from "@/types/api"
 
+import { MessageItem } from "./chat-message"
+
+// Attachment limits (must match the backend).
 const MAX_BYTES = 5 * 1024 * 1024
 const TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"]
 
@@ -38,7 +41,7 @@ export function ChatThread({
   const tc = useTranslations("common")
   const format = useFormat()
   const errorText = useErrorText()
-  const dispatch = useAppDispatch()
+  const queryClient = useQueryClient()
   const chat = useChat(selfId)
   const [before, setBefore] = useState<string | undefined>(undefined)
   const [older, setOlder] = useState<ChatMessage[]>([])
@@ -46,16 +49,16 @@ export function ChatThread({
     conversationId: conversation._id,
     limit: 30,
   })
+  // Older history: fetched only after the user asks for it (sets `before`).
   const { data: olderPage, isFetching: loadingOlder } = useListMessagesQuery(
     { conversationId: conversation._id, before, limit: 30 },
     { skip: !before }
   )
-  const live = useAppSelector(
-    (state) => state.chat.liveMessages[conversation._id]
-  )
-  const pending = useAppSelector((state) => state.chat.pending)
-  const typing = useAppSelector((state) => state.chat.typing[conversation._id])
-  const status = useAppSelector((state) => state.chat.status)
+  const chatState = useChatState()
+  const live = chatState.liveMessages[conversation._id]
+  const pending = chatState.pending
+  const typing = chatState.typing[conversation._id]
+  const status = chatState.status
   const [text, setText] = useState("")
   const [files, setFiles] = useState<File[]>([])
   const [sending, setSending] = useState(false)
@@ -67,6 +70,7 @@ export function ChatThread({
       ? conversation.patient._id
       : conversation.doctor._id
 
+  // Prepend a newly loaded older page once (done during render, React's "adjust state on prop change" pattern).
   if (
     olderPage &&
     before &&
@@ -75,6 +79,7 @@ export function ChatThread({
     setOlder([...olderPage.docs, ...older])
   }
 
+  // Merge every source; the Map keeps one copy per id.
   const messages = useMemo(() => {
     const map = new Map<string, ChatMessage>()
     for (const message of [...older, ...(page?.docs ?? []), ...(live ?? [])])
@@ -88,11 +93,13 @@ export function ChatThread({
   }, [conversation._id, live, older, page, pending])
 
   const nextBefore = before ? olderPage?.nextBefore : page?.nextBefore
+  // Newest message from the other person (ignoring our own optimistic ones).
   const lastIncoming = [...messages]
     .reverse()
     .find((message) => message.sender !== selfId && !message.clientId)
 
   const { join, leave } = chat
+  // Join the conversation's socket room while it is open.
   useEffect(() => {
     void join(conversation._id).catch(() => undefined)
     return () => {
@@ -100,18 +107,18 @@ export function ChatThread({
     }
   }, [conversation._id, join, leave])
 
+  // Mark as read when a new incoming message is visible, and refresh unread badges.
   useEffect(() => {
     if (!lastIncoming || lastIncoming.readBy.includes(selfId)) return
     chat.markRead(conversation._id, lastIncoming._id)
-    dispatch(
-      chatApi.util.invalidateTags([{ type: "Conversation", id: "LIST" }])
-    )
-  }, [chat, conversation._id, dispatch, lastIncoming, selfId])
+    queryClient.invalidateTags([{ type: "Conversation", id: "LIST" }])
+  }, [chat, conversation._id, queryClient, lastIncoming, selfId])
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: "end" })
   }, [messages.length, typing?.length])
 
+  // Send "typing" on each keystroke; send "stopped" after 2 s without typing.
   const onType = (value: string) => {
     setText(value)
     chat.setTyping(conversation._id, true)
@@ -122,6 +129,7 @@ export function ChatThread({
     )
   }
 
+  // Keep only allowed types/sizes (warn about the rest), max 5 files.
   const addFiles = (list: FileList | null) => {
     const accepted = Array.from(list ?? []).filter(
       (file) => TYPES.includes(file.type) && file.size <= MAX_BYTES
@@ -130,6 +138,7 @@ export function ChatThread({
     setFiles((current) => [...current, ...accepted].slice(0, 5))
   }
 
+  // Attachments are sent as raw ArrayBuffers over the socket. On failure the text is restored.
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     const message = text.trim()
@@ -151,9 +160,7 @@ export function ChatThread({
         message: message || undefined,
         attachments: attachments.length ? attachments : undefined,
       })
-      dispatch(
-        chatApi.util.invalidateTags([{ type: "Conversation", id: "LIST" }])
-      )
+      queryClient.invalidateTags([{ type: "Conversation", id: "LIST" }])
     } catch (caught) {
       toast.error(errorText(caught))
       setText(message)
@@ -312,90 +319,5 @@ export function ChatThread({
         </div>
       </form>
     </>
-  )
-}
-
-function MessageItem({
-  message,
-  mine,
-  day,
-  meta,
-}: {
-  message: ChatMessage
-  mine: boolean
-  day: string | null
-  meta: string
-}) {
-  return (
-    <>
-      {day && (
-        <li className="self-center bg-muted px-2.5 py-1 text-xs text-subtle">
-          {day}
-        </li>
-      )}
-      <li
-        className={cn(
-          "flex max-w-[78%] flex-col gap-1",
-          mine ? "items-end self-end" : "items-start self-start"
-        )}
-      >
-        {message.attachments.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {message.attachments.map((attachment) => (
-              <AttachmentView key={attachment.index} attachment={attachment} />
-            ))}
-          </div>
-        )}
-        {message.message && (
-          <div
-            dir="auto"
-            className={cn(
-              "px-3.5 py-2.5 text-sm leading-relaxed break-words whitespace-pre-wrap",
-              mine
-                ? "bg-primary text-primary-foreground"
-                : "border border-border bg-card text-foreground"
-            )}
-          >
-            {message.message}
-          </div>
-        )}
-        <span className="text-[11px] text-subtle">{meta}</span>
-      </li>
-    </>
-  )
-}
-
-function AttachmentView({ attachment }: { attachment: ChatAttachment }) {
-  const t = useTranslations("chat")
-  const errorText = useErrorText()
-  const open = () =>
-    openProtectedFile(attachment.url).catch((caught: unknown) =>
-      toast.error(errorText(caught))
-    )
-  if (attachment.isImage) {
-    return (
-      <button
-        type="button"
-        onClick={() => void open()}
-        aria-label={t("openAttachment", { index: attachment.index + 1 })}
-        className="border border-border bg-card"
-      >
-        <ProtectedImage
-          path={attachment.url}
-          alt={t("attachment")}
-          className="h-36 w-48 object-cover"
-        />
-      </button>
-    )
-  }
-  return (
-    <button
-      type="button"
-      onClick={() => void open()}
-      className="inline-flex items-center gap-2 border border-border bg-card px-3 py-2 text-sm font-medium hover:bg-muted"
-    >
-      <FileTextIcon className="size-4 text-brand" aria-hidden="true" />
-      {t("openAttachment", { index: attachment.index + 1 })}
-    </button>
   )
 }

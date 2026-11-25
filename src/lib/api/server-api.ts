@@ -1,5 +1,13 @@
+/**
+ * fetch() wrapper for SERVER-side calls to the backend (used by auth.ts).
+ *
+ * Client components must use the query hooks (service/*.service.ts) instead.
+ * Unwraps the `{ message, data }` envelope and throws ApiError on non-2xx.
+ */
+
 import { serverApiUrl } from "@/lib/env"
 import type { ApiEnvelope, Language } from "@/types/api"
+
 import { toApiError } from "./error"
 
 interface ServerApiOptions {

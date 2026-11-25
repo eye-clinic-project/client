@@ -1,3 +1,5 @@
+/** Form submit button with a spinner. Pass `pending={form.formState.isSubmitting}`. */
+
 import { Loader2Icon } from "lucide-react"
 import type { ComponentProps } from "react"
 

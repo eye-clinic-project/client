@@ -1,3 +1,9 @@
+/**
+ * All translation namespaces for "en", loaded by i18n/request.ts.
+ * English is the reference: global.d.ts types every `t()` key from this file.
+ * To add a namespace: create <name>.json here and in the other language, then register it below.
+ */
+
 import admin from "./admin.json"
 import analyses from "./analyses.json"
 import appointments from "./appointments.json"
@@ -16,22 +22,22 @@ import validation from "./validation.json"
 import verification from "./verification.json"
 
 const messages = {
-  "admin": admin,
-  "analyses": analyses,
-  "appointments": appointments,
-  "auth": auth,
-  "chat": chat,
-  "common": common,
-  "dashboard": dashboard,
-  "meta": meta,
-  "notifications": notifications,
-  "patient": patient,
-  "patients": patients,
-  "reports": reports,
-  "settings": settings,
-  "shell": shell,
-  "validation": validation,
-  "verification": verification,
+  admin: admin,
+  analyses: analyses,
+  appointments: appointments,
+  auth: auth,
+  chat: chat,
+  common: common,
+  dashboard: dashboard,
+  meta: meta,
+  notifications: notifications,
+  patient: patient,
+  patients: patients,
+  reports: reports,
+  settings: settings,
+  shell: shell,
+  validation: validation,
+  verification: verification,
 }
 
 export default messages

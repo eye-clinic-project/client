@@ -1,4 +1,7 @@
+/** /patient/appointments — my visits (upcoming / past). */
+
 import { pageMetadata } from "@/lib/i18n/metadata"
+
 import { VisitsView } from "./visits-view"
 
 export const generateMetadata = pageMetadata("visits")

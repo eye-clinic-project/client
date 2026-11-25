@@ -1,4 +1,7 @@
+/** /patient/appointments/[id] — one visit, with cancel/reschedule requests. */
+
 import { pageMetadata } from "@/lib/i18n/metadata"
+
 import { VisitDetail } from "./visit-detail"
 
 export const generateMetadata = pageMetadata("visit")

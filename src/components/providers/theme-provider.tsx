@@ -3,6 +3,10 @@
 import * as React from "react"
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
 
+/**
+ * Theme support via next-themes: adds the `dark` class on <html>, defaults to the
+ * system setting. Also enables the "d" hotkey to toggle light/dark.
+ */
 function ThemeProvider({
   children,
   ...props
@@ -21,6 +25,7 @@ function ThemeProvider({
   )
 }
 
+/** Don't steal the "d" key while the user is typing in a field. */
 function isTypingTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) {
     return false
@@ -34,6 +39,7 @@ function isTypingTarget(target: EventTarget | null) {
   )
 }
 
+/** Press "d" (no modifiers, outside inputs) to toggle light/dark mode. */
 function ThemeHotkey() {
   const { resolvedTheme, setTheme } = useTheme()
 

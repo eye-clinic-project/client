@@ -1,5 +1,7 @@
 "use client"
 
+/** Banner asking to enable push notifications. Only shown while the browser permission is still "default" (never asked). */
+
 import { BellRingIcon } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useState } from "react"

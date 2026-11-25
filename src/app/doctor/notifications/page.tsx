@@ -1,3 +1,5 @@
+/** /doctor/notifications — notifications inbox. */
+
 import { NotificationsView } from "@/components/notifications/notifications-view"
 import { pageMetadata } from "@/lib/i18n/metadata"
 

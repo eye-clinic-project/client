@@ -1,21 +1,28 @@
-# Next.js template
+# RetinaCare — client
 
-This is a Next.js template with shadcn/ui.
-
-## Adding components
-
-To add components to your app, run the following command:
+Next.js 16 (App Router) front end for RetinaCare.
 
 ```bash
-npx shadcn@latest add button
+npm install
+npm run dev        # http://localhost:3000
+npm run typecheck && npm run lint
 ```
 
-This will place the ui components in the `components` directory.
+## Layout
 
-## Using components
-
-To use the components in your app, import them as follows:
-
-```tsx
-import { Button } from "@/components/ui/button";
 ```
+src/
+  app/          routes (App Router)
+  components/   ui/ (shadcn), common/, form/, page/, layout/, providers/, <feature>/
+  contexts/     React Context state (ui, chat)
+  services/     query & mutation hooks, one file per backend module
+  hooks/        reusable client hooks
+  lib/          api/ (fetch), query/ (cache), socket/, auth/, i18n/, helpers
+  i18n/         next-intl request config + messages/{en,ar}
+  validation/   Zod schemas
+  types/        API contract
+docs/           architecture & maintenance guides — start at docs/README.md
+public/         static files, FCM service worker
+```
+
+Add shadcn components with `npx shadcn@latest add <name>` (they land in `src/components/ui`).

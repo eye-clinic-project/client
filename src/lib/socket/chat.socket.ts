@@ -1,9 +1,18 @@
+/**
+ * Socket.IO client for realtime chat (namespace `/chat`) and its typed event contract.
+ *
+ * One shared socket for the whole tab. It does not auto-connect:
+ * ChatSocketProvider connects it when there is a token. The token is read on
+ * every (re)connect, so reconnects always use the latest one.
+ */
+
 import { io, type Socket } from "socket.io-client"
 
 import { tokenStore } from "@/lib/auth/token-store"
 import { publicEnv } from "@/lib/env"
 import type { ChatMessage } from "@/types/api"
 
+/** Error shape the server sends in acks and `exception` events. */
 export interface WsError {
   status: "error"
   event?: string
@@ -33,6 +42,7 @@ export interface SendMessagePayload {
   attachments?: { name?: string; data: ArrayBuffer }[]
 }
 
+/** Events the server pushes to us. */
 interface ServerToClientEvents {
   new_message: (message: ChatMessage) => void
   typing: (event: TypingEvent) => void
@@ -40,6 +50,7 @@ interface ServerToClientEvents {
   exception: (error: WsError) => void
 }
 
+/** Events we send. Each takes an ack callback with the server's answer. */
 interface ClientToServerEvents {
   join_conversation: (
     payload: { conversationId: string },
@@ -67,6 +78,7 @@ export type ChatSocket = Socket<ServerToClientEvents, ClientToServerEvents>
 
 let socket: ChatSocket | null = null
 
+/** The shared socket, created on first use. */
 export function chatSocket(): ChatSocket {
   socket ??= io(`${publicEnv.socketUrl}/chat`, {
     autoConnect: false,

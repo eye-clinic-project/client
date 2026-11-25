@@ -1,5 +1,7 @@
 "use client"
 
+/** Reset password form (email + code + new password). Success → /sign-in?reset=1. */
+
 import { zodResolver } from "@hookform/resolvers/zod"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -12,7 +14,7 @@ import { OtpField } from "@/components/form/otp-field"
 import { SubmitButton } from "@/components/form/submit-button"
 import { TextField } from "@/components/form/text-field"
 import { useErrorText } from "@/lib/i18n/use-error-text"
-import { useResetPasswordMutation } from "@/service/auth.service"
+import { useResetPasswordMutation } from "@/services/auth.service"
 import { resetPasswordSchema } from "@/validation/auth.schema"
 
 export function ResetPasswordForm({ defaultEmail }: { defaultEmail: string }) {

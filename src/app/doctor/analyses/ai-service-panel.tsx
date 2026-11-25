@@ -1,15 +1,17 @@
 "use client"
 
+/** Side panel showing AI service health (mode, model version, errors) and the queue size, with a manual refresh. */
+
 import { ActivityIcon, CpuIcon, RefreshCwIcon, ScanEyeIcon } from "lucide-react"
 import { useTranslations } from "next-intl"
 import type { ReactNode } from "react"
 
-import { StatusChip } from "@/components/status-chip"
+import { StatusChip } from "@/components/common/status-chip"
 import { Skeleton } from "@/components/ui/skeleton"
+import type { Tone } from "@/lib/format"
 import { useAnalysisLabels, useFormat } from "@/lib/i18n/use-labels"
 import { cn } from "@/lib/utils"
 import type { AiHealth, FindingCode } from "@/types/api"
-import type { Tone } from "@/util/format"
 
 /** The subset of core's /model-info the server forwards in `AiHealth.info`. */
 interface ModelInfo {
@@ -201,6 +203,7 @@ export function AiServicePanel({
   )
 }
 
+/** One label/value line in the panel. */
 function Fact({
   icon: Icon,
   label,

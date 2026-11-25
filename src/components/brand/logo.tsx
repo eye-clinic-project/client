@@ -1,3 +1,5 @@
+/** RetinaCare logo. `tone="light"` for dark backgrounds (auth side panel). */
+
 import { cn } from "@/lib/utils"
 
 interface LogoProps {

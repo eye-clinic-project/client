@@ -1,38 +1,32 @@
 "use client"
 
-import { zodResolver } from "@hookform/resolvers/zod"
+/**
+ * Review of one doctor: account, clinic and license details, the uploaded
+ * license documents (protected files), and admin decisions:
+ * approve, reject (with reason), and activate/deactivate the account.
+ */
+
 import { ArrowLeftIcon, ExternalLinkIcon } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
-import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 
-import { TextareaField } from "@/components/form/textarea-field"
-import { ConfirmDialog } from "@/components/page/confirm-dialog"
+import { PdfPreview } from "@/components/common/pdf-preview"
+import { ProtectedImage } from "@/components/common/protected-image"
+import { StatusChip } from "@/components/common/status-chip"
+import { UserAvatar } from "@/components/common/user-avatar"
 import { DetailList, Panel } from "@/components/page/panel"
 import { ErrorState } from "@/components/page/states"
-import { PdfPreview } from "@/components/pdf-preview"
-import { ProtectedImage } from "@/components/protected-image"
 import { verificationTone } from "@/components/settings/license-section"
-import { StatusChip } from "@/components/status-chip"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { UserAvatar } from "@/components/user-avatar"
 import { openProtectedFile } from "@/lib/api/protected-file"
+import { formatBytes } from "@/lib/format"
 import { useFormat } from "@/lib/i18n/use-labels"
-import { useErrorText } from "@/lib/i18n/use-error-text"
 import { cn } from "@/lib/utils"
-import {
-  useApproveDoctorMutation,
-  useGetAdminDoctorQuery,
-  useRejectDoctorMutation,
-  useSetUserStatusMutation,
-} from "@/service/admin.service"
-import type { AdminDoctor } from "@/types/api"
-import { formatBytes } from "@/util/format"
-import { rejectDoctorSchema } from "@/validation/admin.schema"
+import { useGetAdminDoctorQuery } from "@/services/admin.service"
 
-type Dialog = "approve" | "reject" | "status" | null
+import { Decisions, type DecisionDialog } from "./doctor-decisions"
 
 export function DoctorReview({
   id,
@@ -51,7 +45,7 @@ export function DoctorReview({
     isError,
     refetch,
   } = useGetAdminDoctorQuery(id)
-  const [dialog, setDialog] = useState<Dialog>(null)
+  const [dialog, setDialog] = useState<DecisionDialog>(null)
   const [documentIndex, setDocumentIndex] = useState(0)
 
   if (isLoading) return <Skeleton className="h-[600px] w-full rounded-none" />
@@ -292,106 +286,5 @@ export function DoctorReview({
         onClose={() => setDialog(null)}
       />
     </div>
-  )
-}
-
-function Decisions({
-  doctor,
-  dialog,
-  onClose,
-}: {
-  doctor: AdminDoctor
-  dialog: Dialog
-  onClose: () => void
-}) {
-  const t = useTranslations("admin")
-  const errorText = useErrorText()
-  const [approve, { isLoading: approving }] = useApproveDoctorMutation()
-  const [reject, { isLoading: rejecting }] = useRejectDoctorMutation()
-  const [setStatus, { isLoading: updating }] = useSetUserStatusMutation()
-  const form = useForm({
-    resolver: zodResolver(rejectDoctorSchema),
-    defaultValues: { reason: "" },
-  })
-  const name = doctor.name
-
-  const run = async (action: () => Promise<unknown>, message: string) => {
-    try {
-      await action()
-      toast.success(message)
-      onClose()
-    } catch (caught) {
-      toast.error(errorText(caught))
-    }
-  }
-
-  return (
-    <>
-      <ConfirmDialog
-        open={dialog === "approve"}
-        onOpenChange={(open) => !open && onClose()}
-        title={t("approveTitle", { name })}
-        description={t("approveBody")}
-        confirmLabel={t("approve")}
-        pending={approving}
-        onConfirm={() =>
-          void run(
-            () => approve(doctor._id).unwrap(),
-            t("approvedToast", { name })
-          )
-        }
-      />
-      <ConfirmDialog
-        open={dialog === "reject"}
-        onOpenChange={(open) => {
-          if (!open) {
-            form.reset()
-            onClose()
-          }
-        }}
-        title={t("rejectTitle", { name })}
-        description={t("rejectBody")}
-        confirmLabel={t("reject")}
-        destructive
-        pending={rejecting}
-        onConfirm={form.handleSubmit(({ reason }) =>
-          run(
-            () => reject({ id: doctor._id, reason }).unwrap(),
-            t("rejectedToast", { name })
-          )
-        )}
-      >
-        <TextareaField
-          control={form.control}
-          name="reason"
-          label={t("rejectReason")}
-          rows={3}
-        />
-      </ConfirmDialog>
-      <ConfirmDialog
-        open={dialog === "status"}
-        onOpenChange={(open) => !open && onClose()}
-        title={
-          doctor.isActive
-            ? t("deactivateTitle", { name })
-            : t("activateTitle", { name })
-        }
-        description={doctor.isActive ? t("deactivateBody") : t("activateBody")}
-        confirmLabel={doctor.isActive ? t("deactivate") : t("activate")}
-        destructive={doctor.isActive}
-        pending={updating}
-        onConfirm={() =>
-          void run(
-            () =>
-              setStatus({
-                userId: doctor.userId,
-                doctorId: doctor._id,
-                isActive: !doctor.isActive,
-              }).unwrap(),
-            t("statusToast")
-          )
-        }
-      />
-    </>
   )
 }

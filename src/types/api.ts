@@ -1,13 +1,24 @@
+/**
+ * TypeScript mirror of the backend API — the contract between client and server.
+ *
+ * When the backend changes a payload, update the type here first; TypeScript
+ * will then show every place in the client that needs to change.
+ * Conventions: ids are Mongo ObjectId strings, dates are ISO strings,
+ * populated references use small "Ref" types (e.g. UserRef).
+ */
+
 export type Role = "admin" | "doctor" | "patient"
 export type Language = "en" | "ar"
 export type ObjectId = string
 export type IsoDate = string
 
+/** Every successful response is wrapped like this. lib/api/request.ts unwraps it. */
 export interface ApiEnvelope<T> {
   message: string
   data: T
 }
 
+/** Paged list response. `count` = total items, `pages` = total pages. */
 export interface Paginated<T> {
   docs: T[]
   count: number
@@ -16,6 +27,7 @@ export interface Paginated<T> {
   pages: number
 }
 
+/** Error response (NestJS style). `message` may be a list of validation errors. */
 export interface ApiErrorBody {
   statusCode: number
   message: string | string[]
@@ -44,6 +56,7 @@ export interface User {
   updatedAt?: IsoDate
 }
 
+/** Minimal user info embedded in other objects. */
 export interface UserRef {
   _id: ObjectId
   name: string
@@ -61,6 +74,7 @@ export interface LicenseDocument {
   uploadedAt: IsoDate
 }
 
+/** A doctor's license review state. `status` is null before any submission. */
 export interface DoctorVerification {
   status: DoctorVerificationStatus | null
   licenseNumber: string | null
@@ -82,6 +96,7 @@ export interface DoctorClinic {
   verificationStatus: DoctorVerificationStatus | null
 }
 
+/** A doctor as seen by their patient (doctor info + when they were assigned). */
 export interface AssignedDoctor {
   assignmentId: ObjectId
   assignedAt: IsoDate | null
@@ -110,6 +125,7 @@ export interface PatientAccount {
   isActive: boolean
 }
 
+/** Medical record of a patient; `user` is their login account. */
 export interface Patient {
   _id: ObjectId
   medicalRecordNumber: string
@@ -125,8 +141,14 @@ export interface Patient {
 
 export type AnalysisStatus = "pending" | "processing" | "completed" | "failed"
 export type EyeSide = "left" | "right" | "unknown"
+/** Diabetic retinopathy grade: 0 none, 1 mild, 2 moderate, 3 severe, 4 proliferative. */
 export type DrLevel = 0 | 1 | 2 | 3 | 4
 
+/**
+ * Stage-1 screening classes: N normal, D diabetic retinopathy, G glaucoma,
+ * C cataract, A age-related macular degeneration, H hypertension,
+ * M myopia, O other.
+ */
 export type FindingCode = "N" | "D" | "G" | "C" | "A" | "H" | "M" | "O"
 export type Stage1Status = "DETECTED" | "SUSPECTED"
 
@@ -138,6 +160,12 @@ export interface AnalysisFinding {
   detected: boolean
 }
 
+/**
+ * One fundus image processed by the AI.
+ * - stage1: multi-disease screening (always present once completed)
+ * - stage2: DR severity grade (only when `available`)
+ * - isMock: produced by the mock AI (development), not a real model
+ */
 export interface Analysis {
   _id: ObjectId
   doctor: ObjectId
@@ -196,6 +224,7 @@ export interface AnalysisHistoryEntry {
   by?: ObjectId | null
 }
 
+/** The doctor's confirmation or correction of an analysis. */
 export interface Review {
   _id: ObjectId
   analysis: ObjectId
@@ -211,6 +240,7 @@ export interface Review {
   updatedAt: IsoDate
 }
 
+/** One bookable time slot of a doctor. */
 export interface Slot {
   _id: ObjectId
   doctor: ObjectId
@@ -249,6 +279,7 @@ export interface RescheduleEntry {
   at: IsoDate
 }
 
+/** AI service status. mode: "remote" = real model service, "mock" = fake results (dev), "disabled" = AI off. */
 export interface AiHealth {
   mode: "remote" | "mock" | "disabled"
   available: boolean
@@ -280,6 +311,7 @@ export interface Report {
 export type AppointmentStatus =
   "pending" | "confirmed" | "cancelled" | "completed"
 
+/** A pending/decided cancel or reschedule request on an appointment. */
 export interface AppointmentChangeRequest {
   type: "cancel" | "reschedule"
   status: "pending" | "approved" | "rejected" | "withdrawn"
@@ -315,6 +347,7 @@ export type NotificationType =
   | "note"
   | "follow_up"
 
+/** `link` is a backend-style path; map it with notificationRoute(). */
 export interface AppNotification {
   _id: ObjectId
   type: NotificationType
@@ -365,11 +398,13 @@ export interface Conversation {
   unreadCount: number
 }
 
+/** Chat history page. Pass `nextBefore` as `before` to load older messages (null = no more). */
 export interface MessagePage {
   docs: ChatMessage[]
   nextBefore: IsoDate | null
 }
 
+/** Doctor account + clinic + verification, flattened for the admin queue. */
 export interface AdminDoctor {
   _id: ObjectId
   userId: ObjectId
