@@ -3,7 +3,7 @@
 import { requireRole } from "@/lib/auth/require-role"
 import { pageMetadata } from "@/lib/i18n/metadata"
 
-import { DoctorDashboard } from "./doctor-dashboard"
+import { DoctorDashboard } from "./_dashboard/doctor-dashboard"
 
 export const generateMetadata = pageMetadata("dashboard")
 
